@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom';
 import { useSessionState } from '../../hooks/useSessionState';
 import {
   AlertCircle, AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck,
-  CheckSquare, Users, X,
+  CheckSquare, Download, Users, X,
 } from 'lucide-react';
 import { FilterBar, FILTER_INPUT } from '../../components/ui/FilterBar';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { useStandupSummary, useCheckInHistory } from '../../api/checkIns';
+import { useStandupSummary, useCheckInHistory, downloadStandupSummaryCsv } from '../../api/checkIns';
 import { useTeamList } from '../../api/teams';
 import { useTaskList } from '../../api/tasks';
 import { useAuth } from '../../hooks/useAuth';
@@ -207,6 +207,7 @@ export default function StandupSummaryPage() {
   // Teams the reader has folded away (kept while browsing).
   const [collapsedTeams, setCollapsedTeams] = useSessionState<string[]>('standup.collapsed', []);
   const [pageIndex, setPageIndex] = useState(0);
+  const [downloading, setDownloading] = useState(false);
 
   const { currentUser } = useAuth();
   const { isPmo, isHeadOfProduct, isTeamLead } = useCurrentRole();
@@ -264,6 +265,15 @@ export default function StandupSummaryPage() {
     ? pageable.filter(({ e }) => !!e.blockers).length - onPage.filter(({ e }) => !!e.blockers).length
     : 0;
 
+  const handleDownloadCsv = async () => {
+    setDownloading(true);
+    try {
+      await downloadStandupSummaryCsv(teamId || undefined, date);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl">
       <PageHeader title="Standup digest" />
@@ -287,6 +297,18 @@ export default function StandupSummaryPage() {
             </FilterBar.Item>
           </>
         )}
+        <div className="ml-auto flex items-center gap-1">
+          <FilterBar.Divider />
+          <button
+            type="button"
+            disabled={downloading}
+            onClick={handleDownloadCsv}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <Download className="h-3 w-3" />
+            {downloading ? 'Loading…' : 'Download CSV'}
+          </button>
+        </div>
       </FilterBar>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}

@@ -88,6 +88,7 @@ export interface AuthUserDto {
 
 export interface AuthDto {
   accessToken: string;
+  /** Empty for the web app: the refresh token is an httpOnly cookie and never appears in a response body. */
   refreshToken: string;
   user: AuthUserDto;
 }

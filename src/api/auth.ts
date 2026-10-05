@@ -1,17 +1,19 @@
 import { useMutation } from '@tanstack/react-query';
 import client from './client';
+import { authCookieConfig } from '../lib/auth';
 import type { AuthDto } from '../types/api';
 
 async function login(email: string, password: string): Promise<AuthDto> {
-  return client.post<AuthDto>('/auth/login', { email, password }).then((r) => r.data);
+  // useCookie: the refresh token comes back only as an httpOnly cookie, never in the response body.
+  return client.post<AuthDto>('/auth/login', { email, password, useCookie: true }, authCookieConfig).then((r) => r.data);
 }
 
-async function logout(refreshToken: string): Promise<void> {
-  await client.post('/auth/logout', { refreshToken });
+async function logout(): Promise<void> {
+  await client.post('/auth/logout', {}, authCookieConfig);
 }
 
 async function bootstrap(name: string, email: string, password: string): Promise<AuthDto> {
-  return client.post<AuthDto>('/auth/bootstrap', { name, email, password }).then((r) => r.data);
+  return client.post<AuthDto>('/auth/bootstrap', { name, email, password, useCookie: true }, authCookieConfig).then((r) => r.data);
 }
 
 async function requestPasswordReset(email: string): Promise<void> {
@@ -27,7 +29,7 @@ export function useLogin() {
 }
 
 export function useLogout() {
-  return useMutation({ mutationFn: (refreshToken: string) => logout(refreshToken) });
+  return useMutation({ mutationFn: () => logout() });
 }
 
 export function useBootstrap() {
