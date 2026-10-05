@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckSquare, Layers, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { CheckSquare, Layers, Search, X, ChevronUp, ChevronDown, ChevronsUpDown, FolderOpen, UserRound, CalendarDays } from 'lucide-react';
 import { FilterBar, FILTER_SELECT } from '../../components/ui/FilterBar';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Pagination } from '../../components/ui/Pagination';
@@ -23,7 +23,6 @@ import { TablePageSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { formatDate, daysLate } from '../../lib/dates';
 import { formatPtsDays } from '../../lib/points';
@@ -207,28 +206,36 @@ export default function TaskListPage() {
     setSearchInput('');
   };
 
+  // Status reads as a colored left accent, not just a badge — the point of moving off a dense
+  // table is to let a glance down the list sort "what needs attention" before reading any text.
+  const STATUS_ACCENT: Record<TaskStatus, string> = {
+    backlog: 'border-l-muted-foreground/25', active: 'border-l-emerald-500', blocked: 'border-l-destructive',
+    inQa: 'border-l-violet-400', done: 'border-l-muted-foreground/15', paused: 'border-l-amber-400',
+  };
+
   const taskRow = (task: TaskDto) => {
-    const days     = daysLate(task);
-    const esc      = escalationMap.get(task.id);
-    const daysEst  = formatPtsDays(task.points, engineers?.find(e => e.id === task.assigneeId));
+    const days    = daysLate(task);
+    const esc     = escalationMap.get(task.id);
+    const daysEst = formatPtsDays(task.points, engineers?.find((e) => e.id === task.assigneeId));
     return (
-      <TableRow
+      <div
         key={task.id}
-        className={cn('cursor-pointer', selectedIds.has(task.id) && 'bg-primary/5')}
+        className={cn(
+          'flex items-start gap-3 border-l-4 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30',
+          STATUS_ACCENT[task.status],
+          selectedIds.has(task.id) && 'bg-primary/5',
+        )}
         onClick={() => setPreviewTaskId(task.id)}
       >
-        {isPm && (
-          <TableCell onClick={(e) => e.stopPropagation()}>
-            {task.status !== 'done' && (
-              <input
-                type="checkbox" checked={selectedIds.has(task.id)} onChange={() => toggleOne(task.id)}
-                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-                aria-label={`Select ${task.title}`}
-              />
-            )}
-          </TableCell>
+        {isPm && task.status !== 'done' && (
+          <input
+            type="checkbox" checked={selectedIds.has(task.id)} onChange={() => toggleOne(task.id)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 shrink-0 rounded border-input text-primary focus:ring-ring"
+            aria-label={`Select ${task.title}`}
+          />
         )}
-        <TableCell>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             {task.taskKey && (
               <span className="shrink-0 font-mono text-xs font-medium text-muted-foreground">{task.taskKey}</span>
@@ -237,42 +244,45 @@ export default function TaskListPage() {
               {task.title}
             </Link>
             {esc && <Badge label={ESC_LABEL[esc]} variant={ESC_VARIANT[esc]} />}
-          </div>
-          {task.blockerReason && (
-            <p className="mt-0.5 truncate text-xs text-destructive">{task.blockerReason}</p>
-          )}
-          {!!task.subtasksTotal && (
-            <p className="mt-0.5 text-xs text-muted-foreground">{task.subtasksDone}/{task.subtasksTotal} subtasks</p>
-          )}
-        </TableCell>
-        <TableCell className="hidden text-muted-foreground xl:table-cell">{task.projectName ?? '—'}</TableCell>
-        <TableCell className="text-muted-foreground">
-          {task.assigneeName ?? '—'}
-          {task.creatorName && <p className="text-xs text-muted-foreground/70">by {task.creatorName}</p>}
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-1">
-            <Badge label={task.status} variant={STATUS_VARIANT[task.status]} />
-            {task.status === 'backlog' && (
-              <HelpTooltip title="How to get out of Backlog" body={backlogExitHint(!!task.assigneeId, task.points)} />
-            )}
             {task.requiresFrontendHandoff && task.status !== 'done' && (
               <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-700 dark:bg-sky-950/40 dark:text-sky-400">
                 In: {task.currentStage === 'frontend' ? 'Frontend' : 'Backend'}
               </span>
             )}
           </div>
-        </TableCell>
-        <TableCell className="whitespace-nowrap font-mono tabular-nums text-muted-foreground">
-          {formatDate(task.dueDate)}
-          {days !== null && days < 0 && <span className="ml-1 text-xs text-destructive">({Math.abs(days)}d late)</span>}
-        </TableCell>
-        <TableCell className="hidden whitespace-nowrap font-mono tabular-nums text-muted-foreground xl:table-cell">{formatDate(task.actualEndDate)}</TableCell>
-        <TableCell className="text-right font-mono tabular-nums text-muted-foreground">
-          {task.points}
-          {daysEst && <span className="ml-1 text-xs text-muted-foreground/70">{daysEst}</span>}
-        </TableCell>
-      </TableRow>
+          {task.blockerReason && (
+            <p className="mt-0.5 truncate text-xs text-destructive">{task.blockerReason}</p>
+          )}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {task.projectName && (
+              <span className="inline-flex items-center gap-1"><FolderOpen className="h-3 w-3 shrink-0" />{task.projectName}</span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <UserRound className="h-3 w-3 shrink-0" />
+              {task.assigneeName ?? 'Unassigned'}
+              {task.creatorName && <span className="text-muted-foreground/70">· by {task.creatorName}</span>}
+            </span>
+            <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+              <CalendarDays className="h-3 w-3 shrink-0" />
+              {formatDate(task.dueDate)}
+              {days !== null && days < 0 && <span className="text-destructive">({Math.abs(days)}d late)</span>}
+            </span>
+            {!!task.subtasksTotal && <span>{task.subtasksDone}/{task.subtasksTotal} subtasks</span>}
+            {task.actualEndDate && <span>Done {formatDate(task.actualEndDate)}</span>}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <div className="flex items-center gap-1">
+            <Badge label={task.status} variant={STATUS_VARIANT[task.status]} />
+            {task.status === 'backlog' && (
+              <HelpTooltip title="How to get out of Backlog" body={backlogExitHint(!!task.assigneeId, task.points)} />
+            )}
+          </div>
+          <span className="font-mono text-xs tabular-nums text-muted-foreground">
+            {task.points}pt{daysEst && ` · ${daysEst}`}
+          </span>
+        </div>
+      </div>
     );
   };
 
@@ -411,68 +421,53 @@ export default function TaskListPage() {
             />
           ) : (
             <>
-              <div className="flex items-center justify-between border-b px-4 py-2.5">
-                <span className="text-xs text-muted-foreground">
-                  {items.length === PAGE_SIZE ? `${items.length}+ tasks` : `${items.length} task${items.length !== 1 ? 's' : ''}`}
-                  {hasFilters && <span className="ml-1 text-primary">· filtered</span>}
-                </span>
-                {pageNumber > 1 && <span className="text-xs text-muted-foreground">Page {pageNumber}</span>}
-              </div>
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+                <div className="flex items-center gap-3">
                   {isPm && (
-                    <TableHead className="w-10">
+                    <label className="flex cursor-pointer items-center gap-1.5">
                       <input
                         type="checkbox" checked={allSelected} onChange={toggleAll}
                         className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
                         aria-label="Select all tasks"
                       />
-                    </TableHead>
+                      <span className="text-xs text-muted-foreground">All</span>
+                    </label>
                   )}
-                  <TableHead className="w-[36%] xl:w-[30%]">
-                    <SortableHeader label="Title" column="title" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
-                  </TableHead>
-                  <TableHead className="hidden w-[12%] xl:table-cell">Project</TableHead>
-                  <TableHead className="w-[16%]">Assignee</TableHead>
-                  <TableHead className="w-[10%]">
-                    <SortableHeader label="Status" column="status" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
-                  </TableHead>
-                  <TableHead className="w-[12%]">
-                    <SortableHeader label="Due" column="dueDate" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
-                  </TableHead>
-                  <TableHead className="hidden w-[12%] xl:table-cell">
-                    <SortableHeader label="Actual" column="actualEndDate" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
-                  </TableHead>
-                  <TableHead className="w-[8%] text-right">
-                    <SortableHeader label="Pts" column="points" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} align="right" />
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+                  <span className="text-xs text-muted-foreground">
+                    {items.length === PAGE_SIZE ? `${items.length}+ tasks` : `${items.length} task${items.length !== 1 ? 's' : ''}`}
+                    {hasFilters && <span className="ml-1 text-primary">· filtered</span>}
+                    {pageNumber > 1 && <span className="ml-1">· page {pageNumber}</span>}
+                  </span>
+                </div>
+                {/* Cards have no columns to click-sort by, so SortableHeader — already a
+                    standalone button, never actually dependent on sitting inside a <th> — moves
+                    into its own small control row instead. Same toggleSort logic either way. */}
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground/70">Sort</span>
+                  <SortableHeader label="Title"  column="title"   sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="Status" column="status"  sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="Due"    column="dueDate" sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
+                  <SortableHeader label="Pts"    column="points"  sortBy={sortBy} sortDirection={sortDirection} onSort={toggleSort} />
+                </div>
+              </div>
+              <div className="divide-y divide-border">
                 {groupedItems
                   ? groupedItems.flatMap(([epicId, epicTasks]) => {
                       const epicTitle = epicId ? (epicMap.get(epicId) ?? `Epic …${epicId.slice(-6)}`) : 'No epic';
-                      const colSpan = isPm ? 8 : 7;
                       return [
-                        <TableRow key={`group-${epicId}`} className="bg-muted/40 hover:bg-muted/40">
-                          <TableCell colSpan={colSpan} className="py-1.5">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                              <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                              {epicTitle}
-                              <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{epicTasks.length}</span>
-                            </span>
-                          </TableCell>
-                        </TableRow>,
+                        <div key={`group-${epicId}`} className="bg-muted/40 px-4 py-1.5">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                            {epicTitle}
+                            <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{epicTasks.length}</span>
+                          </span>
+                        </div>,
                         ...epicTasks.map((task) => taskRow(task)),
                       ];
                     })
                   : items.map((task) => taskRow(task))
                 }
-              </TableBody>
-            </Table>
-            </div>
+              </div>
             </>
           )}
         </Card>
