@@ -5,10 +5,10 @@
 @tailwind utilities;
 
 @layer base {
-  /* Pulse's own identity: a teal "vital signs" accent (hue ~174) on a cyan-leaning neutral
-     (hue ~198-200) — distinct from Cadence's indigo/blue-gray, chosen for a workload-health
-     product without tipping into literal medical-monitor red/green. Destructive actions keep a
-     true red (hue 8) specifically so they never read as "another shade of primary". Light and
+  /* Pulse's own identity: a vivid violet accent (hue ~258) on a violet-tinted cool neutral
+     (hue ~250) — distinct from Cadence's indigo/blue-gray by being more saturated and leaning
+     purple rather than blue. A modern, premium, calm-focus register. Destructive actions use a
+     rose-red (hue 345) specifically so they never read as "another shade of primary". Light and
      dark share this one hue family so the theme toggle feels like one designed system. */
   :root {
     /* Tells the browser to render native form controls (date-picker icon, checkbox, scrollbar)
@@ -16,89 +16,96 @@
        browser-default dark even inside a dark card, nearly invisible against it. */
     color-scheme: light;
 
-    --background:   200 20% 98%;
-    --foreground:   200 24% 12%;
+    /* Kept in sync with the sidebar's actual rendered width by Sidebar.tsx itself (w-60 expanded,
+       w-16 collapsed) — anything reserving layout space for the sidebar (see
+       ProjectHealthDetail.tsx) reads this instead of hardcoding one or the other. Declared here,
+       not just set from JS, so the very first paint (before Sidebar.tsx's effect runs) already
+       has a value — the expanded width, since that's the sidebar's default/first-render state. */
+    --sidebar-rail-width: 15rem;
+
+    --background:   250 20% 98%;
+    --foreground:   250 24% 12%;
 
     --card:         0 0% 100%;
-    --card-foreground: 200 24% 12%;
+    --card-foreground: 250 24% 12%;
 
     --popover:      0 0% 100%;
-    --popover-foreground: 200 24% 12%;
+    --popover-foreground: 250 24% 12%;
 
-    --primary:      174 70% 38%;
+    --primary:      258 90% 66%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:    198 18% 95%;
-    --secondary-foreground: 200 24% 14%;
+    --secondary:    250 18% 95%;
+    --secondary-foreground: 250 24% 14%;
 
-    --muted:        198 18% 95%;
-    --muted-foreground: 198 10% 42%;
+    --muted:        250 18% 95%;
+    --muted-foreground: 250 10% 42%;
 
-    --accent:       198 18% 95%;
-    --accent-foreground: 200 24% 14%;
+    --accent:       250 18% 95%;
+    --accent-foreground: 250 24% 14%;
 
-    --destructive:  8 68% 50%;
+    --destructive:  345 68% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border:       198 16% 89%;
-    --input:        198 16% 89%;
-    --ring:         174 70% 38%;
+    --border:       250 16% 89%;
+    --input:        250 16% 89%;
+    --ring:         258 90% 66%;
 
     --radius: 0.5rem;
 
     /* Sidebar stays dark in both themes — a deliberate fixed anchor, not a themed surface */
-    --sidebar:               200 28% 11%;
-    --sidebar-foreground:    190 20% 96%;
-    --sidebar-border:        200 24% 17%;
-    --sidebar-accent:        200 24% 17%;
-    --sidebar-accent-foreground: 190 20% 96%;
-    --sidebar-muted:         198 14% 30%;
-    --sidebar-muted-foreground: 198 12% 62%;
-    --sidebar-ring:          174 70% 45%;
+    --sidebar:               250 28% 11%;
+    --sidebar-foreground:    250 20% 96%;
+    --sidebar-border:        250 24% 17%;
+    --sidebar-accent:        250 24% 17%;
+    --sidebar-accent-foreground: 250 20% 96%;
+    --sidebar-muted:         250 14% 30%;
+    --sidebar-muted-foreground: 250 12% 62%;
+    --sidebar-ring:          258 90% 70%;
   }
 
-  /* Dark palette: deeper, less-saturated cyan-navy for card/page contrast, the same teal
+  /* Dark palette: deeper, less-saturated violet-navy for card/page contrast, the same violet
      primary as :root above, brightened slightly to hold up against the dark background. */
   .dark {
     color-scheme: dark;
 
-    --background:   200 22% 8%;
-    --foreground:   190 20% 96%;
+    --background:   250 22% 8%;
+    --foreground:   250 20% 96%;
 
-    --card:         200 20% 11%;
-    --card-foreground: 190 20% 96%;
+    --card:         250 20% 11%;
+    --card-foreground: 250 20% 96%;
 
-    --popover:      200 20% 11%;
-    --popover-foreground: 190 20% 96%;
+    --popover:      250 20% 11%;
+    --popover-foreground: 250 20% 96%;
 
-    --primary:      174 65% 48%;
-    --primary-foreground: 200 24% 8%;
+    --primary:      258 85% 72%;
+    --primary-foreground: 250 24% 8%;
 
-    --secondary:    198 20% 16%;
-    --secondary-foreground: 190 20% 94%;
+    --secondary:    250 20% 16%;
+    --secondary-foreground: 250 20% 94%;
 
-    --muted:        198 20% 15%;
-    --muted-foreground: 198 12% 60%;
+    --muted:        250 20% 15%;
+    --muted-foreground: 250 12% 60%;
 
-    --accent:       198 20% 16%;
-    --accent-foreground: 190 20% 94%;
+    --accent:       250 20% 16%;
+    --accent-foreground: 250 20% 94%;
 
-    --destructive:  8 68% 58%;
+    --destructive:  345 68% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border:       198 18% 18%;
-    --input:        198 18% 18%;
-    --ring:         174 65% 48%;
+    --border:       250 18% 18%;
+    --input:        250 18% 18%;
+    --ring:         258 85% 72%;
 
     /* Sidebar stays dark in both modes — slightly darker than card */
-    --sidebar:               200 28% 5%;
-    --sidebar-foreground:    190 20% 96%;
-    --sidebar-border:        200 24% 12%;
-    --sidebar-accent:        200 24% 12%;
-    --sidebar-accent-foreground: 190 20% 96%;
-    --sidebar-muted:         198 14% 24%;
-    --sidebar-muted-foreground: 198 12% 58%;
-    --sidebar-ring:          174 65% 48%;
+    --sidebar:               250 28% 5%;
+    --sidebar-foreground:    250 20% 96%;
+    --sidebar-border:        250 24% 12%;
+    --sidebar-accent:        250 24% 12%;
+    --sidebar-accent-foreground: 250 20% 96%;
+    --sidebar-muted:         250 14% 24%;
+    --sidebar-muted-foreground: 250 12% 58%;
+    --sidebar-ring:          258 85% 72%;
   }
 
   * {
