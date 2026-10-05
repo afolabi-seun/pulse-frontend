@@ -57,6 +57,23 @@ export function useStandupSummary(teamId?: string, date?: string, enabled = true
   });
 }
 
+/** Blob-download approach (same as downloadPmoCsv/downloadTimeSummaryCsv) — the endpoint needs the
+ *  auth header a plain <a href> can't carry. */
+export async function downloadStandupSummaryCsv(teamId?: string, date?: string) {
+  const response = await client.get('/check-ins/standup/csv', {
+    params: { teamId, date },
+    responseType: 'blob',
+    transformResponse: [(data) => data],
+  });
+  const blob = new Blob([response.data as BlobPart], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `standup-digest-${date ?? 'today'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function useSubmitCheckIn() {
   const qc = useQueryClient();
   return useMutation({
