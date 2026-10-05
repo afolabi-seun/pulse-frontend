@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode, createElemen
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  getRefreshToken, getStoredUser, setTokens, setStoredUser,
+  getAccessToken, authCookieConfig, getStoredUser, setTokens, setStoredUser,
   clearTokens, roleAllowed, type StoredUser, type Capability,
 } from '../lib/auth';
 import type { AuthDto, AuthUserDto } from '../types/api';
-import client from '../api/client';
+import client, { refreshSession } from '../api/client';
 
 // Mirrors the backend's default refresh-token idle window (RefreshTokenIdleTimeoutMinutes).
 // A purely client-side nicety — the backend independently enforces the real boundary on
@@ -49,15 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const refresh = getRefreshToken();
+    // Nothing is stored to say "there is a session" except the profile; whether the cookie is still good is the server's call.
+    if (!getStoredUser()) { setIsLoading(false); return; }
 
-    if (!refresh || !getStoredUser()) { setIsLoading(false); return; }
-
-    client
-      .post<AuthDto>('/auth/refresh', { refreshToken: refresh })
-      .then((r) => {
-        const user = toStoredUser(r.data.user);
-        setTokens(r.data.accessToken, r.data.refreshToken);
+    refreshSession()
+      .then((dto) => {
+        const user = toStoredUser(dto.user);
+        setTokens(dto.accessToken);
         setStoredUser(user);
         setCurrentUser(user);
       })
@@ -72,17 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // confidential fields (vitals, check-ins, ...) included, until each query happened to refetch.
     queryClient.clear();
     const user = toStoredUser(dto.user);
-    setTokens(dto.accessToken, dto.refreshToken);
+    setTokens(dto.accessToken);
     setStoredUser(user);
     setCurrentUser(user);
   };
 
   const logout = () => {
-    const refresh = getRefreshToken();
+    // The access token is wiped just below, so the logout request has to carry its own copy to be authenticated.
+    const access = getAccessToken();
     clearTokens();
     setCurrentUser(null);
     queryClient.clear();
-    if (refresh) client.post('/auth/logout', { refreshToken: refresh }).catch(() => {});
+    client.post('/auth/logout', {}, {
+      ...authCookieConfig,
+      headers: { ...authCookieConfig.headers, ...(access ? { Authorization: `Bearer ${access}` } : {}) },
+    }).catch(() => {});
   };
 
   useEffect(() => {
