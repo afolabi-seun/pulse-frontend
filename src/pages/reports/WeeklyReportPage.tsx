@@ -353,37 +353,30 @@ export default function WeeklyReportPage() {
             {/* Risks, Blockers & Support Needed */}
             <section>
               <SectionHeader icon={<ShieldAlert className="h-3.5 w-3.5 text-red-500" />} label="Risks, Blockers & Support Needed" />
-              <Card>
-                <div className="overflow-x-auto">
-                  <Table className="[&_td]:py-2 [&_th]:py-2 [&_th]:text-xs">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap">Title</TableHead>
-                        <TableHead className="whitespace-nowrap">Project</TableHead>
-                        <TableHead className="whitespace-nowrap">Owner</TableHead>
-                        <TableHead className="whitespace-nowrap text-right">Days Blocked</TableHead>
-                        <TableHead className="whitespace-nowrap">Reason</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {report.blockers.map((b) => (
-                        <TableRow key={b.taskId} className="cursor-pointer" onClick={() => setPreviewTaskId(b.taskId)}>
-                          <TableCell className="max-w-[180px] truncate font-medium text-foreground hover:text-primary" title={b.title}>
+              <Card className="overflow-hidden p-0">
+                {report.blockers.length === 0 ? (
+                  <p className="px-4 py-3 text-center text-sm text-muted-foreground">No active blockers.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {report.blockers.map((b) => (
+                      <div
+                        key={b.taskId}
+                        className="cursor-pointer px-4 py-3 transition-colors hover:bg-muted/30"
+                        onClick={() => setPreviewTaskId(b.taskId)}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                          <p className="min-w-0 truncate text-sm font-medium text-foreground hover:text-primary" title={b.title}>
                             {b.taskKey && <span className="mr-1.5 font-mono text-xs text-muted-foreground">{b.taskKey}</span>}
                             {b.title}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">{b.projectName ?? '—'}</TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">{b.assigneeName ?? 'Unassigned'}</TableCell>
-                          <TableCell className={cn('whitespace-nowrap text-right', blockerDaysColor(b.daysBlocked))}>{b.daysBlocked}d</TableCell>
-                          <TableCell className="max-w-[160px] truncate text-muted-foreground" title={b.reason ?? undefined}>{b.reason ?? '—'}</TableCell>
-                        </TableRow>
-                      ))}
-                      {report.blockers.length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No active blockers.</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                          </p>
+                          <span className={cn('shrink-0 text-xs font-medium', blockerDaysColor(b.daysBlocked))}>{b.daysBlocked}d</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{b.projectName ?? '—'} · {b.assigneeName ?? 'Unassigned'}</p>
+                        {b.reason && <p className="mt-1 truncate text-xs text-muted-foreground" title={b.reason}>{b.reason}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </section>
 

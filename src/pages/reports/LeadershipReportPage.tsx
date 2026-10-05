@@ -9,7 +9,6 @@ import { DashboardSkeleton } from '@/components/ui/skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '../../components/ui/Pagination';
 import { EngineerUtilizationTable } from '../../components/reports/EngineerUtilizationTable';
 import { cn } from '@/lib/utils';
@@ -156,38 +155,25 @@ export default function LeadershipReportPage() {
                       </div>
                       <h2 className="text-sm font-semibold text-foreground">At-risk tasks</h2>
                     </div>
-                    <Card>
-                      <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Task</TableHead>
-                            <TableHead>Project</TableHead>
-                            <TableHead>Assignee</TableHead>
-                            <TableHead>Due</TableHead>
-                            <TableHead>Level</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pagedEscalations.map((esc) => (
-                            <TableRow key={esc.taskId}>
-                              <TableCell className="text-foreground">
+                    <Card className="overflow-hidden p-0">
+                      <div className="divide-y divide-border">
+                        {pagedEscalations.map((esc) => (
+                          <div key={esc.taskId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-foreground">
                                 {esc.taskKey && <span className="mr-1.5 font-mono text-xs text-muted-foreground">{esc.taskKey}</span>}
                                 {esc.title}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{esc.projectName ?? '—'}</TableCell>
-                              <TableCell className="text-muted-foreground">{esc.assigneeName ?? '—'}</TableCell>
-                              <TableCell className="text-muted-foreground">{formatDate(esc.dueDate)}</TableCell>
-                              <TableCell>
-                                <Badge
-                                  label={esc.level === 'Overdue' ? 'overdue' : esc.level === 'TMinus1' ? 'T-1' : 'T-3'}
-                                  variant={esc.level === 'Overdue' ? 'red' : esc.level === 'TMinus1' ? 'red' : 'yellow'}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {esc.projectName ?? '—'} · {esc.assigneeName ?? '—'} · Due {formatDate(esc.dueDate)}
+                              </p>
+                            </div>
+                            <Badge
+                              label={esc.level === 'Overdue' ? 'overdue' : esc.level === 'TMinus1' ? 'T-1' : 'T-3'}
+                              variant={esc.level === 'Overdue' ? 'red' : esc.level === 'TMinus1' ? 'red' : 'yellow'}
+                            />
+                          </div>
+                        ))}
                       </div>
                     </Card>
                     <Pagination
@@ -215,33 +201,21 @@ export default function LeadershipReportPage() {
                       </div>
                       <h2 className="text-sm font-semibold text-foreground">Active blockers</h2>
                     </div>
-                    <Card>
-                      <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Task</TableHead>
-                            <TableHead>Project</TableHead>
-                            <TableHead>Blocked</TableHead>
-                            <TableHead>Days</TableHead>
-                            <TableHead>Reason</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pagedBlockers.map((b) => (
-                            <TableRow key={b.taskId}>
-                              <TableCell className="text-foreground">
+                    <Card className="overflow-hidden p-0">
+                      <div className="divide-y divide-border">
+                        {pagedBlockers.map((b) => (
+                          <div key={b.taskId} className="px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                              <p className="min-w-0 truncate text-sm text-foreground">
                                 {b.taskKey && <span className="mr-1.5 font-mono text-xs text-muted-foreground">{b.taskKey}</span>}
                                 {b.title}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{b.projectName ?? '—'}</TableCell>
-                              <TableCell className="text-muted-foreground">{b.assigneeName ?? '—'}</TableCell>
-                              <TableCell className="text-muted-foreground">{b.daysBlocked}d</TableCell>
-                              <TableCell className="text-red-600 dark:text-red-400">{b.reason}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                              </p>
+                              <span className="shrink-0 text-xs font-medium text-muted-foreground">{b.daysBlocked}d</span>
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{b.projectName ?? '—'} · {b.assigneeName ?? '—'}</p>
+                            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{b.reason}</p>
+                          </div>
+                        ))}
                       </div>
                     </Card>
                     <Pagination

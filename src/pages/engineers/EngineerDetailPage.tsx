@@ -28,7 +28,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn, hslVar } from '@/lib/utils';
 import { weeklyBaselinePoints } from '../../lib/points';
 import { formatDate, formatDateTime, daysLate } from '../../lib/dates';
@@ -411,25 +410,17 @@ export default function EngineerDetailPage() {
             </div>
             <p className="text-sm font-semibold text-foreground">Baseline calibration history</p>
           </div>
-          <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {baselineHistory.map((h, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-muted-foreground">{formatDateTime(h.changedAt)}</TableCell>
-                  <TableCell className="text-muted-foreground">{h.fromPoints} pts / {h.fromCycleDays}d</TableCell>
-                  <TableCell className="font-medium text-foreground">{h.toPoints} pts / {h.toCycleDays}d</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="divide-y divide-border">
+            {baselineHistory.map((h, i) => (
+              <div key={i} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3 text-sm">
+                <span className="text-xs text-muted-foreground">{formatDateTime(h.changedAt)}</span>
+                <span className="text-muted-foreground">
+                  {h.fromPoints} pts / {h.fromCycleDays}d
+                  <span className="mx-1.5 text-muted-foreground/50">→</span>
+                  <span className="font-medium text-foreground">{h.toPoints} pts / {h.toCycleDays}d</span>
+                </span>
+              </div>
+            ))}
           </div>
         </Card>
       )}

@@ -10,7 +10,6 @@ import { TablePageSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { formatDateTime } from '../../lib/dates';
 
@@ -109,49 +108,32 @@ export default function AuditLogPage() {
                   {hasFilters && <span className="ml-1 text-primary">· filtered</span>}
                 </span>
               </div>
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-40">Time</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead className="w-44">Actor</TableHead>
-                    <TableHead>Detail</TableHead>
-                    <TableHead className="w-32">IP</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.items.map((entry) => {
-                    const actor = engineers?.find((e) => e.id === entry.actorId);
-                    const name = actor?.name ?? entry.actorId.slice(0, 8);
-                    return (
-                      <TableRow key={entry.id}>
-                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                          {formatDateTime(entry.ts)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className={`h-2 w-2 shrink-0 rounded-full ${actionDotClass(entry.action)}`} />
-                            <span className="text-sm text-foreground capitalize">{formatAction(entry.action)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                              {actorInitials(name)}
-                            </div>
-                            <span className="text-sm text-muted-foreground">{name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground" title={entry.detail ?? undefined}>
-                          {entry.detail ?? '—'}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">{entry.ipAddress ?? '—'}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="divide-y divide-border">
+                {data?.items.map((entry) => {
+                  const actor = engineers?.find((e) => e.id === entry.actorId);
+                  const name = actor?.name ?? entry.actorId.slice(0, 8);
+                  return (
+                    <div key={entry.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {actorInitials(name)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`h-2 w-2 shrink-0 rounded-full ${actionDotClass(entry.action)}`} />
+                          <span className="text-sm capitalize text-foreground">{formatAction(entry.action)}</span>
+                          <span className="text-sm text-muted-foreground">by {name}</span>
+                        </div>
+                        {entry.detail && (
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground" title={entry.detail}>
+                            {entry.detail}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">{formatDateTime(entry.ts)}</span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{entry.ipAddress ?? '—'}</span>
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           )}
