@@ -59,26 +59,19 @@ test.describe('Thresholds editing is Head of PMO only (HeadOfPmoOnly)', () => {
   });
 });
 
-test.describe('Wiki index is filtered by project access', () => {
-  test('CIB-only member sees CIB pages but not OMS', async ({ page }) => {
-    await login(page, Personas.frank.email);
-    await page.goto('/wiki');
-    await expect(page.getByText('CIB Architecture Overview')).toBeVisible();
-    await expect(page.getByText('OMS Delivery Pipeline')).toHaveCount(0);
-  });
-
-  test('assignee-only access does not leak the OMS wiki (emma)', async ({ page }) => {
-    // emma has one assigned OMS task but is not an OMS member → no OMS wiki.
-    await login(page, Personas.emma.email);
-    await page.goto('/wiki');
-    await expect(page.getByText('CIB Architecture Overview')).toBeVisible();
-    await expect(page.getByText('OMS Delivery Pipeline')).toHaveCount(0);
-  });
-
-  test('cross-team member sees both projects (grace)', async ({ page }) => {
-    await login(page, Personas.grace.email);
-    await page.goto('/wiki');
-    await expect(page.getByText('CIB Architecture Overview')).toBeVisible();
-    await expect(page.getByText('OMS Delivery Pipeline')).toBeVisible();
-  });
+// The wiki is open: every signed-in user can read every project's pages, whether or not they are on that project. (A page can be marked
+// "members only", which hides it from people outside the project; the demo seed has none, so this checks the open default.)
+test.describe('Wiki is open to every signed-in user', () => {
+  for (const [who, persona] of [
+    ['a CIB-only member (frank)', Personas.frank],
+    ['an assignee-only engineer (emma)', Personas.emma],
+    ['a cross-team member (grace)', Personas.grace],
+  ] as const) {
+    test(`${who} sees the pages of both projects`, async ({ page }) => {
+      await login(page, persona.email);
+      await page.goto('/wiki');
+      await expect(page.getByText('CIB Architecture Overview')).toBeVisible();
+      await expect(page.getByText('OMS Delivery Pipeline')).toBeVisible();
+    });
+  }
 });
