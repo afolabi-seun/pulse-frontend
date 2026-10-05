@@ -59,13 +59,13 @@ function DaysSelect({ days, onChange }: { days: number; onChange: (d: number) =>
 
 function MetricTile({ label, value, sub, tooltip }: { label: string; value: string; sub?: string; tooltip?: { title: string; body: string } }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+    <div className="rounded-lg border border-border bg-muted/30 px-3.5 py-3">
       <div className="flex items-center gap-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
         {tooltip && <HelpTooltip title={tooltip.title} body={tooltip.body} />}
       </div>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
