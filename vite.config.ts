@@ -3,6 +3,9 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Where the dev server forwards /api and /hubs. Overridable so a test run can point at its own API and never at whatever happens to be on 5284.
+const proxyTarget = process.env.VITE_PROXY_TARGET ?? 'http://localhost:5284';
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -14,11 +17,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5284',
+        target: proxyTarget,
         changeOrigin: true,
       },
       '/hubs': {
-        target: 'http://localhost:5284',
+        target: proxyTarget,
         changeOrigin: true,
         ws: true,
       },
