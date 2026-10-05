@@ -204,18 +204,18 @@ export default function MyAlertsPage() {
             <div className="space-y-1.5">
               <Label>Notify me by</Label>
               <div className="flex items-center gap-5 pt-1">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 rounded border-border accent-primary" {...register('deliverInApp')} />
+                <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground">In-app</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 rounded border-border accent-primary" {...register('deliverEmail')} />
+                  <Switch {...register('deliverInApp')} />
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground">Email</span>
-                </label>
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 rounded border-border accent-primary" {...register('deliverWebhook')} />
+                  <Switch {...register('deliverEmail')} />
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="text-sm text-foreground">Slack / Webhook</span>
-                </label>
+                  <Switch {...register('deliverWebhook')} />
+                </div>
               </div>
               {deliverWebhook && (
                 <div className="pt-2">

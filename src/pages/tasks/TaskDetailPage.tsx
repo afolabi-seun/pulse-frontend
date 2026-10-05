@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import MentionTextarea from '@/components/ui/MentionTextarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
@@ -2188,24 +2189,16 @@ export default function TaskDetailPage() {
               </div>
               <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workflow</p>
               {!task.parentTaskId && (
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border accent-primary"
-                    {...editForm.register('requiresQa')}
-                  />
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium text-foreground">Requires QA sign-off before done</span>
-                </label>
+                  <Switch {...editForm.register('requiresQa')} />
+                </div>
               )}
               {!task.parentTaskId && (
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border accent-primary"
-                    {...editForm.register('requiresPrApproval')}
-                  />
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium text-foreground">Requires PR approval before done</span>
-                </label>
+                  <Switch {...editForm.register('requiresPrApproval')} />
+                </div>
               )}
               {!task.parentTaskId && (
                 <div className="space-y-1.5">
@@ -2226,14 +2219,10 @@ export default function TaskDetailPage() {
                 </div>
               )}
               {!task.parentTaskId && (
-                <label className="flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-border accent-primary"
-                    {...editForm.register('requiresFrontendHandoff')}
-                  />
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-medium text-foreground">Needs a Backend → Frontend handoff</span>
-                </label>
+                  <Switch {...editForm.register('requiresFrontendHandoff')} />
+                </div>
               )}
               {editForm.formState.errors.root && (
                 <p className="text-sm text-destructive pt-1">{editForm.formState.errors.root.message}</p>

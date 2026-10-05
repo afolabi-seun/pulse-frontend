@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 const SELECT_CLS = 'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring';
@@ -353,16 +354,12 @@ export default function TaskCreatePage() {
           </button>
           {showWorkflow && (
           <div className="space-y-3 px-5 py-4">
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-border accent-primary"
-                {...register('requiresQa')}
-              />
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-foreground">Requires QA sign-off before done</span>
-            </label>
+              <Switch {...register('requiresQa')} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              When checked, marking this task done will route it to QA instead — a linked QA sub-task is auto-created for review.
+              When on, marking this task done will route it to QA instead — a linked QA sub-task is auto-created for review.
             </p>
             <div className="space-y-1.5">
               <Label>Discipline</Label>
@@ -381,16 +378,12 @@ export default function TaskCreatePage() {
               />
               <p className="text-xs text-muted-foreground">Used to route QA tasks to the right QA engineer.</p>
             </div>
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-border accent-primary"
-                {...register('requiresFrontendHandoff')}
-              />
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-foreground">Needs a Backend → Frontend handoff</span>
-            </label>
+              <Switch {...register('requiresFrontendHandoff')} />
+            </div>
             <p className="text-xs text-muted-foreground">
-              When checked, the backend assignee can hand this task off to a frontend engineer from Task Detail once their part is done — the task stays where it is, just reassigned.
+              When on, the backend assignee can hand this task off to a frontend engineer from Task Detail once their part is done — the task stays where it is, just reassigned.
             </p>
           </div>
           )}

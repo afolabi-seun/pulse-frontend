@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { RichTextContent } from '@/components/ui/rich-text-content';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Switch } from '@/components/ui/switch';
 import { cn, stripHtml } from '@/lib/utils';
 import { formatDate, formatDateTime, daysLate } from '../../lib/dates';
 import { formatPtsDays } from '../../lib/points';
@@ -1144,15 +1145,15 @@ export default function ProjectDetailPage() {
                       </div>
                     )}
                   </div>
-                  <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border bg-muted/30 px-3 py-2.5">
-                    <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border-input" {...wikiForm.register('restrictedToMembers')} />
-                    <span className="text-sm">
-                      <span className="flex items-center gap-1.5 font-medium text-foreground"><Lock className="h-3.5 w-3.5" /> Project members only</span>
-                      <span className="block text-xs text-muted-foreground">
-                        Wiki pages are readable by everyone in the organisation. Tick this to limit this page, and its history, to this project's members.
-                      </span>
-                    </span>
-                  </label>
+                  <div className="rounded-md border border-border bg-muted/30 px-3 py-2.5">
+                    <div className="flex items-center justify-between gap-2.5">
+                      <span className="flex items-center gap-1.5 text-sm font-medium text-foreground"><Lock className="h-3.5 w-3.5" /> Project members only</span>
+                      <Switch {...wikiForm.register('restrictedToMembers')} />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Wiki pages are readable by everyone in the organisation. Turn this on to limit this page, and its history, to this project's members.
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2 border-t border-border bg-muted/30 px-4 py-2.5">
                   <Button size="sm" type="submit" loading={createWikiPage.isPending || updateWikiPage.isPending}>
