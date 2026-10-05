@@ -1,0 +1,138 @@
+name: E2E
+
+# Drives the real UI in Chromium against the real API and Postgres: the persona access matrix, and the session-cookie flow (login, reload,
+# sign-out) that spans both repositories and so cannot be tested by either one's own CI. The backend is checked out from its dev branch.
+# Not part of the required build-and-test check.
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pulse_admin
+          POSTGRES_PASSWORD: devpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pulse_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the backend (dev)
+        uses: actions/checkout@v4
+        with:
+          repository: afolabi-seun/pulse-backend
+          ref: dev
+          path: backend
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # The same owner + restricted-role split production uses, so requests run as a role row-level security applies to.
+      - name: Create the owner and restricted database roles
+        env:
+          PGPASSWORD: devpassword
+        run: |
+          psql -h localhost -U pulse_admin -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE pulse_owner   LOGIN PASSWORD 'ownerpassword' NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+          CREATE ROLE pulse_rls_app LOGIN PASSWORD 'rlspassword'   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+          CREATE DATABASE pulse_dev OWNER pulse_owner;
+          \connect pulse_dev
+          ALTER DEFAULT PRIVILEGES FOR ROLE pulse_owner GRANT USAGE ON SCHEMAS TO pulse_rls_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE pulse_owner IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pulse_rls_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE pulse_owner IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO pulse_rls_app;
+          SQL
+
+      - name: Publish the API
+        run: dotnet publish backend/Pulse.Api --configuration Release --output backend-out
+
+      # Development, because the demo seed endpoint is what makes the persona data deterministic; ENABLE_DEMO_ENDPOINTS and
+      # DISABLE_RATE_LIMITING (a run logs in dozens of times from one address) are both honoured only in Development.
+      - name: Start the API
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5284
+          ALLOWED_ORIGINS: http://localhost:5173
+          APP_BASE_URL: http://localhost:5173
+          ENABLE_DEMO_ENDPOINTS: "true"
+          DISABLE_RATE_LIMITING: "true"
+          JWT_SECRET_KEY: ci-only-signing-key-not-a-secret-0123456789abcdef
+          JWT_ISSUER: pulse
+          JWT_AUDIENCE: pulse
+          JWT_ACCESS_EXPIRY_TIME: "30"
+          JWT_VERIFY_EMAIL_EXPIRY_TIME: "24"
+          JWT_FORGET_PASSWORD_EXPIRY_TIME: "15"
+          Mail_Host: localhost
+          Mail_Port: "25"
+          Mail_User: ci
+          Mail_Password: ci
+          Mail_FromName: Pulse CI
+          Mail_FromAddress: ci@pulse.test
+          Mail_EnableSsl: "false"
+          DB_CONNECTION: Host=localhost;Port=5432;Database=pulse_dev;Username=pulse_rls_app;Password=rlspassword
+          DB_MIGRATION_CONNECTION: Host=localhost;Port=5432;Database=pulse_dev;Username=pulse_owner;Password=ownerpassword
+        run: |
+          nohup dotnet backend-out/Pulse.Api.dll > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS --max-time 3 http://127.0.0.1:5284/healthz >/dev/null 2>&1; then echo "API is up after about $((i * 2))s."; exit 0; fi
+            sleep 2
+          done
+          echo "The API did not start. Log:"; cat api.log; exit 1
+
+      - run: npm ci
+
+      - name: Start the frontend
+        env:
+          VITE_API_BASE_URL: http://localhost:5284
+          VITE_PROXY_TARGET: http://localhost:5284
+        run: |
+          nohup npx vite --port 5173 --strictPort > vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://localhost:5173/ >/dev/null 2>&1; then echo "Frontend is up."; exit 0; fi
+            sleep 1
+          done
+          echo "The frontend did not start. Log:"; cat vite.log; exit 1
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run the e2e suite
+        env:
+          E2E_RESET_SEED: "1"
+          E2E_API_URL: http://localhost:5284
+          PLAYWRIGHT_BASE_URL: http://localhost:5173
+        run: npx playwright test
+
+      - name: Keep the report and logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure
+          path: |
+            playwright-report
+            test-results
+            api.log
+            vite.log
+          if-no-files-found: ignore
+          retention-days: 7
