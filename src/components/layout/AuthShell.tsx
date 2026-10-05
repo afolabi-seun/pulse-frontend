@@ -23,11 +23,12 @@ export default function AuthShell({ children }: { children: ReactNode }) {
       />
 
       <div className="relative mb-8 flex flex-col items-center gap-2 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm">
-          <AudioWaveform className="h-5 w-5 text-primary-foreground" />
+        <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-sm shadow-primary/30">
+          <span aria-hidden="true" className="absolute inset-0 rounded-2xl bg-primary/50 motion-safe:animate-ping motion-reduce:hidden" />
+          <AudioWaveform className="relative h-6 w-6 text-primary-foreground" />
         </div>
-        <span className="text-xl font-bold tracking-tight">Pulse</span>
-        <p className="text-sm text-muted-foreground">Team velocity without the overhead.</p>
+        <span className="text-2xl font-bold tracking-tight">Pulse</span>
+        <p className="text-sm text-muted-foreground">The pulse behind every sprint.</p>
 
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
           {FEATURES.map(({ icon: Icon, text }) => (

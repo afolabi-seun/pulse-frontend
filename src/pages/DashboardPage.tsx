@@ -361,7 +361,7 @@ export default function DashboardPage() {
                 <Skeleton className="h-40 w-full" />
               ) : (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                     <StatCard
                       title="Delivered pts"
                       value={pmoReport?.totalDeliveredPoints ?? 0}
@@ -930,7 +930,7 @@ export default function DashboardPage() {
             show; every other role (including other department heads) keeps this. */}
         {!hidePersonal && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-3">
             <StatCard
               title="Active Tasks"
               value={activeTasks.length}
@@ -1059,10 +1059,10 @@ interface StatCardProps {
 
 function StatCard({ title, value, icon, iconBg, sub, accent, to }: StatCardProps) {
   const content = (
-    <CardContent className="p-3.5">
-      <div className="mb-2 flex items-center gap-2">
+    <CardContent className="p-4">
+      <div className="mb-2.5 flex items-center gap-2.5">
         <div className={cn(
-          'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
           iconBg ?? 'bg-muted',
         )}>
           {icon}
@@ -1070,12 +1070,12 @@ function StatCard({ title, value, icon, iconBg, sub, accent, to }: StatCardProps
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
       </div>
       <p className={cn(
-        'font-mono text-2xl font-bold tabular-nums tracking-tight',
+        'font-mono text-3xl font-bold tabular-nums tracking-tight',
         accent === 'red' ? 'text-red-600' : accent === 'yellow' ? 'text-amber-600' : 'text-foreground',
       )}>
         {value}
       </p>
-      {sub && <p className="mt-0.5 text-xs text-muted-foreground/70">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-muted-foreground/70">{sub}</p>}
     </CardContent>
   );
 
@@ -1092,7 +1092,7 @@ function StatCard({ title, value, icon, iconBg, sub, accent, to }: StatCardProps
 
 function MyPerformanceGrid({ m }: { m: PerformanceMetricsDto }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className="grid grid-cols-2 gap-3">
       <StatCard
         title="Velocity"
         value={`${Math.round(m.velocityRatio * 100)}%`}
