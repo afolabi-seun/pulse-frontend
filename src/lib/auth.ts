@@ -3,8 +3,21 @@ import type { Role } from '../types/api';
 // Access token lives in memory only — never touches disk.
 let _accessToken: string | null = null;
 
-export const getAccessToken  = () => _accessToken;
-export const getRefreshToken = () => localStorage.getItem('pulse_refresh');
+export const getAccessToken = () => _accessToken;
+
+// The refresh token lives in an httpOnly cookie the server sets — scripts on the page can neither read nor store
+// it. These two are only for a session that began before that change: its token is still in localStorage, is sent
+// once so the server can move it to the cookie, and is then deleted.
+const LEGACY_REFRESH_KEY = 'pulse_refresh';
+export const getLegacyRefreshToken   = () => localStorage.getItem(LEGACY_REFRESH_KEY);
+export const clearLegacyRefreshToken = () => localStorage.removeItem(LEGACY_REFRESH_KEY);
+
+/** Axios options for the auth endpoints that use the refresh cookie: send/accept cookies cross-origin, and carry the
+ *  custom header the server requires as proof the request comes from this app (it forces a CORS preflight). */
+export const authCookieConfig = {
+  withCredentials: true,
+  headers: { 'X-Pulse-Client': 'web' },
+} as const;
 
 export interface StoredUser {
   id: string;
@@ -20,9 +33,8 @@ export function getStoredUser(): StoredUser | null {
   return raw ? (JSON.parse(raw) as StoredUser) : null;
 }
 
-export function setTokens(access: string, refresh: string) {
+export function setTokens(access: string) {
   _accessToken = access;
-  localStorage.setItem('pulse_refresh', refresh);
 }
 
 export function setStoredUser(user: StoredUser) {
@@ -31,7 +43,7 @@ export function setStoredUser(user: StoredUser) {
 
 export function clearTokens() {
   _accessToken = null;
-  localStorage.removeItem('pulse_refresh');
+  clearLegacyRefreshToken();
   localStorage.removeItem('pulse_user');
 }
 
