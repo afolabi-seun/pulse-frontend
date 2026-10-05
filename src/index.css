@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Pulse's own identity: a teal "vital signs" accent (hue ~174) on a cyan-leaning neutral
+     (hue ~198-200) — distinct from Cadence's indigo/blue-gray, chosen for a workload-health
+     product without tipping into literal medical-monitor red/green. Destructive actions keep a
+     true red (hue 8) specifically so they never read as "another shade of primary". Light and
+     dark share this one hue family so the theme toggle feels like one designed system. */
+  :root {
+    /* Tells the browser to render native form controls (date-picker icon, checkbox, scrollbar)
+       in the matching light/dark UI variant — without this the date input's calendar icon stays
+       browser-default dark even inside a dark card, nearly invisible against it. */
+    color-scheme: light;
+
+    --background:   200 20% 98%;
+    --foreground:   200 24% 12%;
+
+    --card:         0 0% 100%;
+    --card-foreground: 200 24% 12%;
+
+    --popover:      0 0% 100%;
+    --popover-foreground: 200 24% 12%;
+
+    --primary:      174 70% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary:    198 18% 95%;
+    --secondary-foreground: 200 24% 14%;
+
+    --muted:        198 18% 95%;
+    --muted-foreground: 198 10% 42%;
+
+    --accent:       198 18% 95%;
+    --accent-foreground: 200 24% 14%;
+
+    --destructive:  8 68% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border:       198 16% 89%;
+    --input:        198 16% 89%;
+    --ring:         174 70% 38%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar stays dark in both themes — a deliberate fixed anchor, not a themed surface */
+    --sidebar:               200 28% 11%;
+    --sidebar-foreground:    190 20% 96%;
+    --sidebar-border:        200 24% 17%;
+    --sidebar-accent:        200 24% 17%;
+    --sidebar-accent-foreground: 190 20% 96%;
+    --sidebar-muted:         198 14% 30%;
+    --sidebar-muted-foreground: 198 12% 62%;
+    --sidebar-ring:          174 70% 45%;
+  }
+
+  /* Dark palette: deeper, less-saturated cyan-navy for card/page contrast, the same teal
+     primary as :root above, brightened slightly to hold up against the dark background. */
+  .dark {
+    color-scheme: dark;
+
+    --background:   200 22% 8%;
+    --foreground:   190 20% 96%;
+
+    --card:         200 20% 11%;
+    --card-foreground: 190 20% 96%;
+
+    --popover:      200 20% 11%;
+    --popover-foreground: 190 20% 96%;
+
+    --primary:      174 65% 48%;
+    --primary-foreground: 200 24% 8%;
+
+    --secondary:    198 20% 16%;
+    --secondary-foreground: 190 20% 94%;
+
+    --muted:        198 20% 15%;
+    --muted-foreground: 198 12% 60%;
+
+    --accent:       198 20% 16%;
+    --accent-foreground: 190 20% 94%;
+
+    --destructive:  8 68% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border:       198 18% 18%;
+    --input:        198 18% 18%;
+    --ring:         174 65% 48%;
+
+    /* Sidebar stays dark in both modes — slightly darker than card */
+    --sidebar:               200 28% 5%;
+    --sidebar-foreground:    190 20% 96%;
+    --sidebar-border:        200 24% 12%;
+    --sidebar-accent:        200 24% 12%;
+    --sidebar-accent-foreground: 190 20% 96%;
+    --sidebar-muted:         198 14% 24%;
+    --sidebar-muted-foreground: 198 12% 58%;
+    --sidebar-ring:          174 65% 48%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* `backwards`, not `both`: with `both` the final keyframe's `transform: translateY(0)` stays applied for good, and
+   any transform makes this wrapper the containing block for `position: fixed` descendants. Drawers, overlays and
+   the bulk-action bar inside a page were then laid out against the whole page height instead of the screen — a
+   drawer opened from the bottom of a long page had its content up at the top, out of view. `backwards` only holds
+   the starting keyframe, and leaves no transform behind once the 150ms fade is done. */
+.page-transition {
+  animation: page-in 150ms ease-out backwards;
+}
+
+.wiki-prose {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground));
+}
+.wiki-prose h1, .wiki-prose h2, .wiki-prose h3, .wiki-prose h4 {
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: hsl(var(--foreground));
+}
+.wiki-prose h1 { font-size: 1.375rem; border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.3em; }
+.wiki-prose h2 { font-size: 1.125rem; }
+.wiki-prose h3 { font-size: 1rem; }
+.wiki-prose p { margin: 0.75em 0; }
+.wiki-prose ul, .wiki-prose ol { margin: 0.75em 0; padding-left: 1.5em; }
+.wiki-prose li { margin: 0.25em 0; }
+.wiki-prose ul { list-style-type: disc; }
+.wiki-prose ol { list-style-type: decimal; }
+.wiki-prose code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125em;
+  background: hsl(var(--muted));
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+}
+.wiki-prose pre {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.wiki-prose pre code { background: none; padding: 0; font-size: 0.8125rem; }
+.wiki-prose blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1em;
+  margin-left: 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.wiki-prose a { color: hsl(var(--primary)); text-decoration: underline; }
+.wiki-prose hr { border-color: hsl(var(--border)); margin: 1.5em 0; }
+.wiki-prose table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin: 1em 0; }
+.wiki-prose th, .wiki-prose td { border: 1px solid hsl(var(--border)); padding: 0.4em 0.75em; text-align: left; }
+.wiki-prose th { background: hsl(var(--muted)); font-weight: 600; }
+
+@media print {
+  aside { display: none !important; }
+  .h-screen { height: auto !important; }
+  .overflow-hidden { overflow: visible !important; }
+  .overflow-y-auto { overflow: visible !important; }
+  #main-content { padding: 0 !important; }
+}

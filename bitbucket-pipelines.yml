@@ -1,0 +1,102 @@
+image: node:22.14.0
+definitions:
+  caches:
+    sonar: ~/.sonar
+
+  steps:
+    - step: &sonarqube-analysis
+        name: SonarQube analysis
+        image: node:22.14.0
+        size: 2x
+        clone:
+          depth: full
+        script:
+          - apt-get update && apt-get install -y openjdk-17-jdk wget unzip
+          - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          - export PATH=$JAVA_HOME/bin:$PATH
+          - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+          - export PATH=$PWD/sonar-scanner-5.0.1.3006-linux/bin:$PATH
+          - export SONAR_SCANNER_OPTS="-Xmx4096m"
+          - sonar-scanner -Dsonar.projectKey=pulse-frontend -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
+          - sleep 30   # waiting period for updated quality gate status             
+          - apt-get update && apt-get install -y jq
+          - |
+            QUALITY_GATE_STATUS=$(curl -s -u ${SONAR_TOKEN}: "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=pulse-frontend" | jq -r '.projectStatus.status')
+            if [ "$QUALITY_GATE_STATUS" != "OK" ]; then
+              echo "Quality Gate failed. Status: $QUALITY_GATE_STATUS";
+              exit 1; # Fails the pipeline
+            else
+              echo "Quality Gate passed. Status: $QUALITY_GATE_STATUS";
+            fi
+
+    - step: &build-application-dev
+        name: Build application using npm
+        size: 2x
+        script:
+          - cd $BITBUCKET_CLONE_DIR && npm install -g pnpm && pnpm install && pnpm approve-builds --all
+          - cd $BITBUCKET_CLONE_DIR && npm run build
+        artifacts:
+          - dist/**
+
+    # TODO: this project has no deployment infrastructure of its own yet — the SSH target and
+    # server paths below are placeholders. Point DEV_SSH_KEY / the server variables at Pulse's own
+    # host before enabling deployment.
+    - step: &scp-deployment
+        name: Deploy artifacts using SCP to test server
+        image: alpine:latest
+        runs-on:
+          - self.hosted
+          - linux
+        script:
+          - apk add --no-cache openssh-client
+          - mkdir -p ~/.ssh
+          - echo "$DEV_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+          - chmod 600 ~/.ssh/id_ed25519
+          - ssh-keyscan -H $dev_serverip >> ~/.ssh/known_hosts
+          - scp -i ~/.ssh/id_ed25519 -r dist/* $dev_user@$dev_serverip:/srv/pulse-frontend
+
+    - step: &deploy-restart-nginx
+        name: Deploy build folder to nginx directory and restart nginx
+        image: alpine:latest
+        runs-on:
+          - self.hosted
+          - linux
+        script:
+          - apk add --no-cache openssh-client
+          - mkdir -p ~/.ssh
+          - echo "$DEV_SSH_KEY" | base64 -d > ~/.ssh/id_ed25519
+          - chmod 600 ~/.ssh/id_ed25519
+          - ssh-keyscan -H $dev_serverip >> ~/.ssh/known_hosts
+          - ssh -i ~/.ssh/id_ed25519 $dev_user@$dev_serverip 'sudo rsync -avP /srv/pulse-frontend/* /usr/share/nginx/html/pulse-frontend/'
+          - ssh -i ~/.ssh/id_ed25519 $dev_user@$dev_serverip 'sudo systemctl restart nginx'
+
+
+pipelines:
+  branches:
+    dev:
+    #  - step: *sonarqube-analysis
+      - step: *build-application-dev
+      - step: *scp-deployment
+      - step: *deploy-restart-nginx
+
+  # pr scan for dev to confirm if the incoming branch matches the naming convention
+  pull-requests:
+    '**':
+      - step:
+          name: Validate branch prefix for DEV
+          script:
+            - |
+              if [ "$BITBUCKET_PR_DESTINATION_BRANCH" = "dev" ]; then
+                if [[ "$BITBUCKET_BRANCH" =~ ^(bug|hotfix|feature)/ ]]; then
+                  echo "Branch '$BITBUCKET_BRANCH' allowed to merge into dev branch"
+                else
+                  echo " Branch '$BITBUCKET_BRANCH' is NOT allowed to merge into dev branch."
+                  echo "Only branches prefixed with bug/, hotfix/, or feature/ are permitted."
+                  exit 1
+                fi
+              else
+                echo "Not targeting DEV — skipping prefix check."
+              fi
+
+  # testing PR

@@ -1,0 +1,44 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Build output ──────────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+*.local
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# NOTE: the frontend .env is intentionally committed (non-secret demo config) via
+# `git update-index --skip-worktree .env` — see README. Do not add `.env` here.
+.env.local
+.env.*.local
+
+# ── Test results & coverage ───────────────────────────────────────────────────
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# ── Vite / TypeScript ─────────────────────────────────────────────────────────
+*.tsbuildinfo
+vite.config.ts.timestamp-*
+.vite/
+.cache/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/launch.json
+.vscode/*.env
+.idea/
+# Claude Code's local preview-server config (a per-machine launch.json)
+.claude/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+._*
+Thumbs.db
+desktop.ini
