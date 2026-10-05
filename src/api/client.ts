@@ -1,11 +1,28 @@
 import axios from 'axios';
 import { ApiError } from '../lib/errors';
-import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../lib/auth';
+import { getAccessToken, getLegacyRefreshToken, clearLegacyRefreshToken, authCookieConfig, setTokens, clearTokens } from '../lib/auth';
+import type { AuthDto } from '../types/api';
 
 const client = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL ?? ''}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
 });
+
+/** Trades the refresh cookie for a new access token (and rotates the cookie). A session that began before the refresh
+ *  token moved to a cookie still has it in localStorage: that is sent once so the server can set the cookie, then dropped. */
+export function refreshSession(): Promise<AuthDto> {
+  // One request at a time: every refresh rotates the token, so two in flight would present the same one twice, and
+  // the server treats a reused token as theft and signs the user out everywhere (a double-mounted effect in dev, or
+  // a startup refresh racing a 401 retry, would do it).
+  inflightRefresh ??= (async () => {
+    const legacy = getLegacyRefreshToken();
+    const { data } = await client.post<AuthDto>('/auth/refresh', legacy ? { refreshToken: legacy } : {}, authCookieConfig);
+    clearLegacyRefreshToken();
+    return data;
+  })().finally(() => { inflightRefresh = null; });
+  return inflightRefresh;
+}
+let inflightRefresh: Promise<AuthDto> | null = null;
 
 // ── Request: attach access token ─────────────────────────────────────────────
 client.interceptors.request.use((config) => {
@@ -42,7 +59,8 @@ client.interceptors.response.use(
     // Silent refresh on 401 — exclude auth endpoints to prevent infinite loops
     const isAuthEndpoint =
       original.url === '/auth/refresh' ||
-      original.url === '/auth/login';
+      original.url === '/auth/login' ||
+      original.url === '/auth/logout';
 
     if (status === 401 && !original._retry && !isAuthEndpoint) {
       if (isRefreshing) {
@@ -58,11 +76,8 @@ client.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await client.post<{ accessToken: string; refreshToken: string }>(
-          '/auth/refresh',
-          { refreshToken: getRefreshToken() },
-        );
-        setTokens(data.accessToken, data.refreshToken);
+        const data = await refreshSession();
+        setTokens(data.accessToken);
         refreshWaiters.forEach((cb) => cb(data.accessToken));
         refreshWaiters = [];
         original.headers.Authorization = `Bearer ${data.accessToken}`;
