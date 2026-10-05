@@ -85,12 +85,15 @@ export default function ProjectHealthDetail({ project }: { project: ProjectHealt
 
   return (
     // Sits inside a wide, horizontally scrolling report table: pinned to the left edge and capped to the
-    // visible width, so it stays on screen regardless of that table's own scroll position. The 14rem
-    // subtraction accounts for the sidebar's reserved width, which only exists from lg: up (Sidebar.tsx
-    // is an off-canvas overlay below that) — applying it on mobile left this panel capped to ~150px on a
-    // 375px phone.
+    // visible width, so it stays on screen regardless of that table's own scroll position. The
+    // --sidebar-rail-width subtraction accounts for the sidebar's reserved width, which only exists
+    // from lg: up (Sidebar.tsx is an off-canvas overlay below that) — applying it on mobile left this
+    // panel capped to ~150px on a 375px phone. That width is a CSS var, not a fixed value, because
+    // Sidebar.tsx's collapse toggle changes how much it actually reserves (see Sidebar.tsx's own
+    // comment on the var) — a fixed rem value here was correct for the expanded sidebar but left this
+    // panel under-using the extra space the collapsed rail frees up.
     <div
-      className="sticky left-0 w-full max-w-[calc(100vw-2rem)] space-y-4 bg-muted/20 px-4 py-4 lg:max-w-[min(56rem,calc(100vw-14rem))]"
+      className="sticky left-0 w-full max-w-[calc(100vw-2rem)] space-y-4 bg-muted/20 px-4 py-4 lg:max-w-[min(56rem,calc(100vw-var(--sidebar-rail-width)))]"
       data-testid="project-health-detail"
     >
       <section>

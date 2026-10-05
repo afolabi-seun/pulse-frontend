@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -7,6 +8,8 @@ import {
   BellDot,
   BookOpen,
   CheckSquare,
+  ChevronsLeft,
+  ChevronsRight,
   ClipboardCheck,
   ClipboardList,
   Clock,
@@ -44,6 +47,26 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TimerIndicator from '../time/TimerIndicator';
 import type { Capability } from '../../lib/auth';
+
+const COLLAPSE_KEY = 'pulse-sidebar-collapsed';
+
+/** Desktop-only icon rail, VS Code activity-bar style — persisted so it survives a reload.
+ * Never applies on the mobile drawer (collapsing a full-screen overlay down to icons would just
+ * make it harder to use, not more compact), so the stored value only ever matters at `lg:` width. */
+function useSidebarCollapse() {
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === 'true'; } catch { return false; }
+  });
+  useEffect(() => {
+    // Mirrors the w-16/w-60 Tailwind classes below as a CSS var, for anything elsewhere on the
+    // page that reserves layout space for the sidebar instead of sitting inside normal flex flow
+    // (e.g. ProjectHealthDetail.tsx's sticky panel, capped by `calc(100vw - ...)`). Harmless to
+    // set even on mobile, where the sidebar is never actually collapsed — only lg: rules read it.
+    document.documentElement.style.setProperty('--sidebar-rail-width', collapsed ? '4rem' : '15rem');
+    try { localStorage.setItem(COLLAPSE_KEY, String(collapsed)); } catch {}
+  }, [collapsed]);
+  return { collapsed, toggleCollapsed: () => setCollapsed((v) => !v) };
+}
 
 interface NavItem {
   to: string;
@@ -121,9 +144,10 @@ interface SectionProps {
   isHr: boolean;
   isAccountant: boolean;
   onNavClick: () => void;
+  collapsed: boolean;
 }
 
-function NavSection({ label, items, allowFn, isHead, isExecutive, isHr, isAccountant, onNavClick }: SectionProps) {
+function NavSection({ label, items, allowFn, isHead, isExecutive, isHr, isAccountant, onNavClick, collapsed }: SectionProps) {
   const visible = items.filter((i) => {
     if (i.cap) {
       const capOk = Array.isArray(i.cap) ? i.cap.some(allowFn) : allowFn(i.cap);
@@ -139,12 +163,18 @@ function NavSection({ label, items, allowFn, isHead, isExecutive, isHr, isAccoun
 
   return (
     <div className="px-2">
-      <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground/70">
-        {label}
-      </p>
+      {/* Collapsed: the section label has nowhere to go in an icon-only rail — a thin divider
+          keeps sections visually separated without it. */}
+      {collapsed ? (
+        <div className="mx-2 mb-1 border-t border-sidebar-border/60" />
+      ) : (
+        <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground/70">
+          {label}
+        </p>
+      )}
       <ul role="list" className="space-y-0.5">
         {visible.map((item) => (
-          <NavItemLink key={item.to} item={item} onClick={onNavClick} />
+          <NavItemLink key={item.to} item={item} onClick={onNavClick} collapsed={collapsed} />
         ))}
       </ul>
     </div>
@@ -162,12 +192,16 @@ const TOUR_ANCHORS: Partial<Record<string, string>> = {
   '/wiki':          'tour-wiki',
 };
 
-function NavItemLink({ item, onClick }: { item: NavItem; onClick: () => void }) {
+function NavItemLink({ item, onClick, collapsed }: { item: NavItem; onClick: () => void; collapsed: boolean }) {
   const Icon = item.icon;
   const tourId = TOUR_ANCHORS[item.to];
   const location = useLocation();
   // Wiki pages live inside /projects/:id?wiki=... — highlight the wiki nav item there too
   const isWikiContext = item.to === '/wiki' && new URLSearchParams(location.search).has('wiki');
+  // Expanded: the label is already on-screen as text, so the tooltip only adds value when there's
+  // a description too. Collapsed: the label itself is gone, so the tooltip is the only place left
+  // to read it — show every time, label first.
+  const showTooltip = collapsed || !!item.description;
   return (
     <li>
       <TooltipProvider delayDuration={400}>
@@ -180,7 +214,8 @@ function NavItemLink({ item, onClick }: { item: NavItem; onClick: () => void }) 
               data-tour={tourId}
               className={({ isActive }) =>
                 cn(
-                  'group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+                  'group flex items-center rounded-md py-2 text-sm font-medium transition-colors',
+                  collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5',
                   (isActive || isWikiContext)
                     ? 'bg-white/15 text-white'
                     : 'text-sidebar-muted-foreground hover:bg-white/8 hover:text-white',
@@ -188,12 +223,13 @@ function NavItemLink({ item, onClick }: { item: NavItem; onClick: () => void }) 
               }
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           </TooltipTrigger>
-          {item.description && (
+          {showTooltip && (
             <TooltipContent side="right" sideOffset={8} className="max-w-[220px]">
-              <p className="text-xs">{item.description}</p>
+              {collapsed && <p className="text-xs font-semibold">{item.label}</p>}
+              {item.description && <p className="text-xs">{item.description}</p>}
             </TooltipContent>
           )}
         </Tooltip>
@@ -219,30 +255,36 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
   const isHr = allow('hr-read');
   const isAccountant = allow('accountant-read');
   const { theme, toggleTheme } = useTheme();
+  const { collapsed, toggleCollapsed } = useSidebarCollapse();
 
   return (
     <aside
       className={cn(
-        // Base: fixed drawer (mobile)
+        // Base: fixed drawer (mobile) — always full width; collapsing only ever applies at lg:.
         'fixed inset-y-0 left-0 z-50 flex w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground',
         'transition-transform duration-200 ease-in-out',
-        // Desktop: static, always visible, no animation needed
-        'lg:static lg:z-auto lg:translate-x-0 lg:transition-none',
+        // Desktop: static, always visible, width animates between rail and full instead of
+        // sliding — same element, no separate collapsed component to keep in sync.
+        'lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] lg:duration-150',
+        collapsed ? 'lg:w-16' : 'lg:w-60',
         // Mobile open/closed
         open ? 'translate-x-0' : '-translate-x-full',
       )}
     >
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
+      <div className={cn('flex h-14 shrink-0 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'gap-2.5 px-4')}>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary shadow-md">
           <AudioWaveform className="h-4 w-4 text-white" />
         </div>
-        <span className="flex-1 text-base font-bold tracking-tight">Pulse</span>
-        {/* Close button — mobile only */}
+        {!collapsed && <span className="flex-1 text-base font-bold tracking-tight">Pulse</span>}
+        {/* Close button — mobile only, collapsing the rail makes no sense on a drawer overlay */}
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md p-1 text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring lg:hidden"
+          className={cn(
+            'rounded-md p-1 text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring lg:hidden',
+            collapsed && 'hidden',
+          )}
           aria-label="Close navigation"
         >
           <X className="h-4 w-4" />
@@ -251,28 +293,39 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
 
       {/* Nav */}
       <nav className="flex-1 space-y-4 overflow-y-auto py-4" aria-label="Main navigation">
-        <NavSection label="Personal"   items={PERSONAL}   allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} />
-        <NavSection label="Work"       items={WORK}       allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} />
-        <NavSection label="Comms"      items={COMMS}      allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} />
-        <NavSection label="Management" items={MANAGEMENT} allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} />
-        <NavSection label="Admin"      items={ADMIN}      allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} />
+        <NavSection label="Personal"   items={PERSONAL}   allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} collapsed={collapsed} />
+        <NavSection label="Work"       items={WORK}       allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} collapsed={collapsed} />
+        <NavSection label="Comms"      items={COMMS}      allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} collapsed={collapsed} />
+        <NavSection label="Management" items={MANAGEMENT} allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} collapsed={collapsed} />
+        <NavSection label="Admin"      items={ADMIN}      allowFn={allow} isHead={isHead} isExecutive={isExecutive} isHr={isHr} isAccountant={isAccountant} onNavClick={onClose} collapsed={collapsed} />
       </nav>
 
       {/* User footer */}
       <div className="border-t border-sidebar-border p-3">
-        <TimerIndicator />
+        {/* The running-timer pill carries text (elapsed time, task name) that has nowhere to go
+            in a 64px rail — hidden while collapsed rather than squeezed unreadable; expanding the
+            rail shows it again, timer state itself is untouched either way. */}
+        {!collapsed && <TimerIndicator />}
         {/* Command palette trigger */}
         <button
           type="button"
           onClick={onOpenPalette}
-          className="mb-2 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          title={collapsed ? 'Search…  ⌘K' : undefined}
+          className={cn(
+            'mb-2 flex w-full items-center rounded-md py-2 text-xs text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+            collapsed ? 'justify-center px-0' : 'gap-2 px-2.5',
+          )}
         >
           <Search className="h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1 text-left">Search…</span>
-          <kbd className="rounded border border-sidebar-border bg-sidebar-muted px-1 py-0.5 text-[9px] leading-none">⌘K</kbd>
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">Search…</span>
+              <kbd className="rounded border border-sidebar-border bg-sidebar-muted px-1 py-0.5 text-[9px] leading-none">⌘K</kbd>
+            </>
+          )}
         </button>
         <Separator className="mb-3 bg-sidebar-border" />
-        <div className="flex items-center gap-2.5 rounded-md px-1 py-1">
+        <div className={cn('flex items-center rounded-md py-1', collapsed ? 'flex-col gap-2' : 'gap-2.5 px-1')}>
           <Link to="/account" title="My account" className="shrink-0">
             <Avatar className="h-7 w-7">
               <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-[10px]">
@@ -280,12 +333,14 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
               </AvatarFallback>
             </Avatar>
           </Link>
-          <div className="min-w-0 flex-1">
-            <Link to="/account" className="block hover:underline">
-              <p className="truncate text-xs font-medium text-sidebar-foreground">{currentUser?.name}</p>
-            </Link>
-            <p className="truncate text-[10px] text-sidebar-muted-foreground">{currentUser?.email}</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <Link to="/account" className="block hover:underline">
+                <p className="truncate text-xs font-medium text-sidebar-foreground">{currentUser?.name}</p>
+              </Link>
+              <p className="truncate text-[10px] text-sidebar-muted-foreground">{currentUser?.email}</p>
+            </div>
+          )}
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -301,6 +356,20 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
             <LogOut className="h-3.5 w-3.5" />
           </button>
         </div>
+        {/* Collapse toggle — desktop only; mobile already has its own full-width drawer with a
+            dedicated close button above, so a second, different "collapse" affordance there would
+            just be confusing. */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'mt-2 hidden w-full items-center rounded-md py-1.5 text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring lg:flex',
+            collapsed ? 'justify-center px-0' : 'justify-center gap-1.5 px-2.5 text-xs',
+          )}
+        >
+          {collapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <><ChevronsLeft className="h-3.5 w-3.5" /> Collapse</>}
+        </button>
       </div>
     </aside>
   );
