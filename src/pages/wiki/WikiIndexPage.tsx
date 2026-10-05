@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '../../components/ui/Pagination';
 import { cn } from '@/lib/utils';
 import type { WikiIndexEntryDto } from '../../types/api';
@@ -95,58 +94,52 @@ export default function WikiIndexPage() {
     }
   };
 
-  const SortHead = ({ label, column, className }: { label: string; column: SortKey; className?: string }) => (
-    <TableHead className={className}>
-      <button
-        type="button"
-        onClick={() => setSortKey(column)}
-        className={cn('inline-flex items-center gap-1 hover:text-foreground', sortKey === column && 'text-foreground')}
-      >
-        {label}
-        {sortKey === column
-          ? (column === 'updated' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />)
-          : <ChevronsUpDown className="h-3 w-3 opacity-50" />}
-      </button>
-    </TableHead>
+  const SortButton = ({ label, column }: { label: string; column: SortKey }) => (
+    <button
+      type="button"
+      onClick={() => setSortKey(column)}
+      className={cn('inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground', sortKey === column && 'text-foreground')}
+    >
+      {label}
+      {sortKey === column
+        ? (column === 'updated' ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />)
+        : <ChevronsUpDown className="h-3 w-3 opacity-50" />}
+    </button>
   );
 
   const pageRow = (e: WikiIndexEntryDto, showProject: boolean) => (
-    <TableRow key={e.pageId} className="cursor-pointer" onClick={() => navigate(`/wiki/${e.projectId}/${e.pageId}`)}>
-      <TableCell className={cn('py-1.5', !showProject && 'pl-9')}>
-        {/* A long title wraps onto the next line rather than being cut off; the icon stays beside the first line. */}
-        <span className="flex items-start gap-2">
-          <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className={cn('min-w-0 break-words font-medium leading-snug text-foreground', q && e.pageTitle.toLowerCase().includes(q) && 'text-primary')}>
-            {e.pageTitle}
-          </span>
-          {e.restrictedToMembers && (
-            <span title="Project members only" className="mt-0.5 shrink-0 text-muted-foreground">
-              <Lock className="h-3 w-3" aria-label="Project members only" />
-            </span>
-          )}
+    <div
+      key={e.pageId}
+      className={cn('flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 transition-colors hover:bg-muted/30', !showProject && 'pl-9')}
+      onClick={() => navigate(`/wiki/${e.projectId}/${e.pageId}`)}
+    >
+      {/* A long title wraps onto the next line rather than being cut off; the icon stays beside the first line. */}
+      <span className="flex min-w-0 flex-1 items-start gap-2">
+        <BookOpen className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+        <span className={cn('min-w-0 break-words font-medium leading-snug text-foreground', q && e.pageTitle.toLowerCase().includes(q) && 'text-primary')}>
+          {e.pageTitle}
         </span>
-      </TableCell>
-      {showProject && (
-        <TableCell className="py-1.5 text-muted-foreground">
-          <span className="block truncate">{e.projectName}</span>
-        </TableCell>
-      )}
-      <TableCell className="whitespace-nowrap py-1.5 text-xs text-muted-foreground">
+        {e.restrictedToMembers && (
+          <span title="Project members only" className="mt-0.5 shrink-0 text-muted-foreground">
+            <Lock className="h-3 w-3" aria-label="Project members only" />
+          </span>
+        )}
+      </span>
+      {showProject && <span className="shrink-0 truncate text-sm text-muted-foreground">{e.projectName}</span>}
+      <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
         {new Date(touched(e)).toLocaleDateString()}
-      </TableCell>
-      <TableCell className="py-1.5">
-        <button
-          type="button"
-          title="Download PDF"
-          aria-label={`Download ${e.pageTitle} as PDF`}
-          disabled={downloadingId === e.pageId}
-          onClick={(evt) => handleDownload(evt, e)}
-          className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
-      </TableCell>
-    </TableRow>
+      </span>
+      <button
+        type="button"
+        title="Download PDF"
+        aria-label={`Download ${e.pageTitle} as PDF`}
+        disabled={downloadingId === e.pageId}
+        onClick={(evt) => handleDownload(evt, e)}
+        className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+      >
+        <Download className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 
   return (
@@ -232,44 +225,34 @@ export default function WikiIndexPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortHead label="Page" column="title" />
-                {!grouped && <SortHead label="Project" column="project" className="w-[28%]" />}
-                <SortHead label="Updated" column="updated" className="w-[7.5rem]" />
-                <TableHead className="w-9"><span className="sr-only">Download</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grouped
-                ? groups.map((g) => {
-                    const open = isOpen(g.projectId);
-                    return (
-                      <Fragment key={g.projectId}>
-                        <TableRow className="bg-muted/40 hover:bg-muted/60">
-                          <TableCell colSpan={3} className="p-0">
-                            <button
-                              type="button"
-                              aria-expanded={open}
-                              aria-label={`${g.projectName}, ${g.entries.length} page${g.entries.length === 1 ? '' : 's'}`}
-                              onClick={() => toggle(g.projectId)}
-                              className="flex w-full items-center gap-2 px-4 py-1.5 text-left"
-                            >
-                              {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                              <span className="text-xs font-semibold uppercase tracking-wide text-foreground">{g.projectName}</span>
-                              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{g.entries.length}</span>
-                            </button>
-                          </TableCell>
-                          <TableCell className="p-0" />
-                        </TableRow>
-                        {open && g.entries.map((e) => pageRow(e, false))}
-                      </Fragment>
-                    );
-                  })
-                : pageRows.map((e) => pageRow(e, true))}
-            </TableBody>
-          </Table>
+          <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2">
+            <SortButton label="Page" column="title" />
+            {!grouped && <SortButton label="Project" column="project" />}
+            <SortButton label="Updated" column="updated" />
+          </div>
+          <div className="divide-y divide-border">
+            {grouped
+              ? groups.map((g) => {
+                  const open = isOpen(g.projectId);
+                  return (
+                    <Fragment key={g.projectId}>
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-label={`${g.projectName}, ${g.entries.length} page${g.entries.length === 1 ? '' : 's'}`}
+                        onClick={() => toggle(g.projectId)}
+                        className="flex w-full items-center gap-2 bg-muted/40 px-4 py-1.5 text-left hover:bg-muted/60"
+                      >
+                        {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                        <span className="text-xs font-semibold uppercase tracking-wide text-foreground">{g.projectName}</span>
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{g.entries.length}</span>
+                      </button>
+                      {open && g.entries.map((e) => pageRow(e, false))}
+                    </Fragment>
+                  );
+                })
+              : pageRows.map((e) => pageRow(e, true))}
+          </div>
         </Card>
       )}
 

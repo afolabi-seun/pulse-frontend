@@ -1,5 +1,5 @@
 import { screen, within, fireEvent } from '@testing-library/react';
-import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import StandupSummaryPage from '../StandupSummaryPage';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import * as checkInsApi from '../../../api/checkIns';
@@ -25,17 +25,13 @@ const ready = (summary: Partial<StandupSummaryDto>) =>
   } as any);
 
 describe('StandupSummaryPage', () => {
-  // The shared Table's scroll-shadow measures itself with a ResizeObserver, which jsdom lacks.
-  beforeAll(() => {
-    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-  });
   beforeEach(() => {
     sessionStorage.clear();
     vi.mocked(checkInsApi.useStandupSummary).mockReset();
     vi.mocked(checkInsApi.useCheckInHistory).mockReturnValue({ data: { items: [] }, isLoading: false } as any);
   });
 
-  it('shows each check-in as a table row: engineer with role and project, completed, planned next and blocker', () => {
+  it('shows each check-in as a card: engineer with role and project, completed, planned next and blocker', () => {
     ready({
       entries: [
         entry({ engineerId: 'e1', engineerName: 'Emma Wilson', role: 'head_of_rd', projectName: 'OMS', completed: 'Shipped the export', plannedNext: 'Start the import', blockers: 'Need API keys' }),
@@ -44,15 +40,16 @@ describe('StandupSummaryPage', () => {
     });
     renderWithProviders(<StandupSummaryPage />);
 
-    for (const header of ['Engineer', 'Completed', 'Planned next', 'Blocker'])
-      expect(screen.getByRole('columnheader', { name: header })).toBeInTheDocument();
-    const emma = within(screen.getByRole('row', { name: /Emma Wilson/ }));
+    for (const header of ['Completed', 'Planned next'])
+      expect(screen.getAllByText(header).length).toBeGreaterThan(0);
+    const emma = within(screen.getByText('Emma Wilson').closest('.rounded-lg') as HTMLElement);
     expect(emma.getByText('Head Of Rd')).toBeInTheDocument();
     expect(emma.getByText('OMS')).toBeInTheDocument();
     expect(emma.getByText('Shipped the export')).toBeInTheDocument();
     expect(emma.getByText('Start the import')).toBeInTheDocument();
     expect(emma.getByText('Need API keys')).toBeInTheDocument();
-    expect(within(screen.getByRole('row', { name: /Frank Okafor/ })).getByText('—')).toBeInTheDocument();
+    const frank = within(screen.getByText('Frank Okafor').closest('.rounded-lg') as HTMLElement);
+    expect(frank.queryByText(/Need API keys|Stuck/)).not.toBeInTheDocument();
   });
 
   it('summarises in one compact strip instead of tiles and a repeated blockers callout', () => {
@@ -160,12 +157,12 @@ describe('StandupSummaryPage', () => {
       ready({ entries: many(30) });
       renderWithProviders(<StandupSummaryPage />);
 
-      expect(screen.getAllByRole('row').length).toBe(26); // header + 25
+      expect(screen.getAllByText(/^Person \d{2}$/).length).toBe(25);
       expect(screen.getByText('Showing 1–25 of 30 check-ins')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled();
 
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
-      expect(screen.getAllByRole('row').length).toBe(6); // header + 5
+      expect(screen.getAllByText(/^Person \d{2}$/).length).toBe(5);
       expect(screen.getByText('Showing 26–30 of 30 check-ins')).toBeInTheDocument();
       expect(screen.getByText('Person 29')).toBeInTheDocument();
       expect(screen.queryByText('Person 00')).not.toBeInTheDocument();

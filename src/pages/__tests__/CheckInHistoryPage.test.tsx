@@ -1,5 +1,5 @@
 import { screen, within } from '@testing-library/react';
-import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CheckInHistoryPage from '../CheckInHistoryPage';
 import { renderWithProviders } from '../../test/renderWithProviders';
 import * as checkInsApi from '../../api/checkIns';
@@ -22,13 +22,9 @@ const ready = (items: CheckInDto[]) =>
   vi.mocked(checkInsApi.useCheckInHistory).mockReturnValue({ data: { items, nextCursor: null, hasMore: false }, isLoading: false, error: null } as any);
 
 describe('CheckInHistoryPage', () => {
-  // The shared Table's scroll-shadow measures itself with a ResizeObserver, which jsdom lacks.
-  beforeAll(() => {
-    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-  });
   beforeEach(() => vi.mocked(checkInsApi.useCheckInHistory).mockReset());
 
-  it('lists check-ins as a table under a heading per day, with the project and a blocker column', () => {
+  it('lists check-ins as cards under a heading per day, with the project and a blocker callout', () => {
     ready([
       ci({ id: 'a', date: '2026-10-02', projectId: 'p1', completed: 'Shipped the export', plannedNext: 'Start the import', blockers: 'Need API keys' }),
       ci({ id: 'b', date: '2026-10-02', projectId: null, completed: 'Admin tidy-up', plannedNext: 'More admin' }),
@@ -36,19 +32,19 @@ describe('CheckInHistoryPage', () => {
     ]);
     renderWithProviders(<CheckInHistoryPage />);
 
-    for (const header of ['Project', 'Completed', 'Planned next', 'Blocker'])
-      expect(screen.getByRole('columnheader', { name: header })).toBeInTheDocument();
+    for (const header of ['Completed', 'Planned next'])
+      expect(screen.getAllByText(header).length).toBeGreaterThan(0);
 
-    const first = within(screen.getByRole('row', { name: /Shipped the export/ }));
+    const first = within(screen.getByText('Shipped the export').closest('.rounded-lg') as HTMLElement);
     expect(first.getByText('OMS')).toBeInTheDocument();
     expect(first.getByText('Start the import')).toBeInTheDocument();
     expect(first.getByText('Need API keys')).toBeInTheDocument();
-    expect(within(screen.getByRole('row', { name: /Admin tidy-up/ })).getByText('General')).toBeInTheDocument();
+    expect(within(screen.getByText('Admin tidy-up').closest('.rounded-lg') as HTMLElement).getByText('General')).toBeInTheDocument();
 
-    // One heading row per day, newest first, with the day's entries under it.
-    const rows = screen.getAllByRole('row').map((r) => r.textContent ?? '');
-    const iHeadingNew = rows.findIndex((t) => /2 Oct/.test(t) && !t.includes('Shipped'));
-    const iHeadingOld = rows.findIndex((t) => /1 Oct/.test(t) && !t.includes('Yesterday'));
+    // One heading per day, newest first, with the day's entries under it.
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent ?? '');
+    const iHeadingNew = headings.findIndex((t) => /2 Oct/.test(t));
+    const iHeadingOld = headings.findIndex((t) => /1 Oct/.test(t));
     expect(iHeadingNew).toBeGreaterThan(-1);
     expect(iHeadingOld).toBeGreaterThan(iHeadingNew);
   });

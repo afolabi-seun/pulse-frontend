@@ -1,5 +1,5 @@
 import { screen, fireEvent, within } from '@testing-library/react';
-import { vi, describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import WikiIndexPage from '../WikiIndexPage';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import type { WikiIndexEntryDto } from '../../../types/api';
@@ -16,16 +16,12 @@ vi.mock('../../../api/wiki', () => ({
   downloadWikiPagePdf: vi.fn(),
 }));
 
-beforeAll(() => {
-  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-});
-
 const listView = () => localStorage.setItem('wiki.view', 'list');
 
 describe('WikiIndexPage', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); navigate.mockClear(); });
 
-  it('lists every project\'s pages in one table, newest first, and opens a page in the standalone viewer', () => {
+  it('lists every project\'s pages in one list, newest first, and opens a page in the standalone viewer', () => {
     pages = [
       entry({ pageId: 'p1', pageTitle: 'Old runbook', projectId: 'a', projectName: 'Alpha', updatedAt: '2026-09-02T00:00:00Z' }),
       entry({ pageId: 'p2', pageTitle: 'Fresh guide', projectId: 'b', projectName: 'Beta', updatedAt: '2026-10-01T00:00:00Z' }),
@@ -33,12 +29,12 @@ describe('WikiIndexPage', () => {
     listView();
     renderWithProviders(<WikiIndexPage />);
 
-    const rows = screen.getAllByRole('row').slice(1);
-    expect(within(rows[0]).getByText('Fresh guide')).toBeInTheDocument();
-    expect(within(rows[0]).getByText('Beta')).toBeInTheDocument();
-    expect(within(rows[1]).getByText('Old runbook')).toBeInTheDocument();
+    const titles = screen.getAllByText(/Old runbook|Fresh guide/).map((n) => n.textContent);
+    expect(titles).toEqual(['Fresh guide', 'Old runbook']);
+    const freshRow = screen.getByText('Fresh guide').closest('div.flex') as HTMLElement;
+    expect(within(freshRow).getByText('Beta')).toBeInTheDocument();
 
-    fireEvent.click(rows[0]);
+    fireEvent.click(screen.getByText('Fresh guide'));
     expect(navigate).toHaveBeenCalledWith('/wiki/b/p2');
   });
 
@@ -72,10 +68,10 @@ describe('WikiIndexPage', () => {
     listView();
     renderWithProviders(<WikiIndexPage />);
 
-    expect(screen.getAllByRole('row').length).toBe(26); // header + 25
+    expect(screen.getAllByText(/^Page \d{2}$/).length).toBe(25);
     expect(screen.getAllByLabelText('Project members only')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
-    expect(screen.getAllByRole('row').length).toBe(6); // header + 5
+    expect(screen.getAllByText(/^Page \d{2}$/).length).toBe(5);
   });
 
   describe('grouped by project (the default)', () => {
@@ -94,7 +90,7 @@ describe('WikiIndexPage', () => {
       expect(screen.getByRole('button', { name: 'Alpha, 2 pages' })).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByRole('button', { name: 'Beta, 1 page' })).toBeInTheDocument();
       expect(screen.getByText('Alpha one')).toBeInTheDocument();
-      expect(screen.queryByRole('columnheader', { name: /project/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Project/ })).not.toBeInTheDocument();
     });
 
     it('folds and unfolds a project, and remembers it', () => {

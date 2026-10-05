@@ -25,7 +25,6 @@ import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { formatDate, formatDateTime } from '../../lib/dates';
 import type { Role, RoleMetaDto, UserDto } from '../../types/api';
@@ -659,76 +658,53 @@ export default function UsersPage() {
         </Card>
       )}
 
-      <Card>
-        <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>QA</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Lock</TableHead>
-              <TableHead>Joined</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users?.map((u) => (
-              <TableRow
+      <Card className="overflow-hidden p-0">
+        <div className="divide-y divide-border">
+          {users?.map((u) => {
+            const deptHeadNoTeam = (() => {
+              const rm = meta?.roles.find((r) => r.value === u.role);
+              return rm?.isDeptHead && u.role !== 'head_of_pmo' && !u.team;
+            })();
+            const isLocked = !!u.lockedUntil && new Date(u.lockedUntil) > new Date();
+            return (
+              <div
                 key={u.id}
-                className="cursor-pointer hover:bg-muted/50"
+                className="flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/30"
                 onClick={() => setSelectedUserId(u.id)}
               >
-                <TableCell>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {userInitials(u.name)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{u.name}</p>
-                      <p className="text-xs text-muted-foreground">{u.email}</p>
-                    </div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {userInitials(u.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="font-medium text-foreground">{u.name}</p>
+                    <Badge label={u.isActive ? 'active' : 'inactive'} variant={u.isActive ? 'green' : 'gray'} />
+                    {isLocked && <Badge label="locked" variant="red" />}
                   </div>
-                </TableCell>
-                <TableCell className="capitalize text-muted-foreground">{roleLabel(u.role, meta?.roles)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    {u.team ?? '—'}
-                    {(() => {
-                      const rm = meta?.roles.find((r) => r.value === u.role);
-                      return rm?.isDeptHead && u.role !== 'head_of_pmo' && !u.team
-                        ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        : null;
-                    })()}
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {u.isQa ? (
-                    <span className="flex items-center gap-1.5">
-                      {u.discipline
-                        ? (DISCIPLINES.find((d) => d.value === u.discipline)?.label ?? u.discipline)
-                        : <span className="text-amber-600 dark:text-amber-500">No discipline</span>}
-                      {!u.discipline && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />}
+                  <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <span className="capitalize">{roleLabel(u.role, meta?.roles)}</span>
+                    <span className="inline-flex items-center gap-1">
+                      {u.team ?? 'No team'}
+                      {deptHeadNoTeam && <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" />}
                     </span>
-                  ) : '—'}
-                </TableCell>
-                <TableCell>
-                  <Badge label={u.isActive ? 'active' : 'inactive'} variant={u.isActive ? 'green' : 'gray'} />
-                </TableCell>
-                <TableCell>
-                  {!!u.lockedUntil && new Date(u.lockedUntil) > new Date()
-                    ? <Badge label="locked" variant="red" />
-                    : u.failedLoginAttempts > 0
-                    ? <span className="text-xs text-yellow-600">{u.failedLoginAttempts} failed</span>
-                    : <span className="text-xs text-muted-foreground">—</span>
-                  }
-                </TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(u.createdAt)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    {u.isQa && (
+                      <span className="inline-flex items-center gap-1">
+                        QA · {u.discipline
+                          ? (DISCIPLINES.find((d) => d.value === u.discipline)?.label ?? u.discipline)
+                          : <span className="text-amber-600 dark:text-amber-500">no discipline</span>}
+                        {!u.discipline && <AlertTriangle className="h-3 w-3 shrink-0 text-amber-500" />}
+                      </span>
+                    )}
+                    {!isLocked && u.failedLoginAttempts > 0 && (
+                      <span className="text-yellow-600 dark:text-yellow-500">{u.failedLoginAttempts} failed logins</span>
+                    )}
+                    <span>Joined {formatDate(u.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
 

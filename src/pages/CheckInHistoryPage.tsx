@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useCheckInHistory } from '../api/checkIns';
 import { useMyProjects } from '../api/projects';
@@ -10,11 +9,8 @@ import { AlertTriangle, ClipboardList } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CardListSkeleton } from '@/components/ui/skeleton';
 import ErrorState from '../components/ui/ErrorState';
-import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '../lib/dates';
-
-const TABLE_CLS = '[&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3 [&_th]:py-2 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide';
 
 export default function CheckInHistoryPage() {
   const { currentUser } = useAuth();
@@ -42,48 +38,38 @@ export default function CheckInHistoryPage() {
           <EmptyState icon={ClipboardList} title="No check-ins yet" description="Your daily check-ins will appear here." />
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className={`${TABLE_CLS} table-fixed`}>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-36">Project</TableHead>
-                  <TableHead>Completed</TableHead>
-                  <TableHead>Planned next</TableHead>
-                  <TableHead className="w-[22%]">Blocker</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[...days.entries()].map(([date, items]) => (
-                  <Fragment key={date}>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableCell colSpan={4} className="!py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {formatDate(date)}
-                      </TableCell>
-                    </TableRow>
-                    {items.map((ci) => (
-                      <TableRow key={ci.id}>
-                        <TableCell className="align-top text-sm font-medium text-foreground">{projectName(ci.projectId)}</TableCell>
-                        <TableCell className="align-top text-sm text-foreground"><ExpandableText text={ci.completed} /></TableCell>
-                        <TableCell className="align-top text-sm text-foreground"><ExpandableText text={ci.plannedNext} /></TableCell>
-                        <TableCell className="align-top text-sm">
-                          {ci.blockers ? (
-                            <div className="flex items-start gap-1.5 text-amber-700 dark:text-amber-300">
-                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                              <ExpandableText text={ci.blockers} />
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </Fragment>
+        <div className="space-y-6">
+          {[...days.entries()].map(([date, items]) => (
+            <div key={date}>
+              <h2 className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatDate(date)}</h2>
+              <div className="space-y-2.5">
+                {items.map((ci) => (
+                  <Card key={ci.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <p className="mb-2.5 text-sm font-medium text-foreground">{projectName(ci.projectId)}</p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Completed</p>
+                          <div className="mt-0.5 text-sm text-foreground"><ExpandableText text={ci.completed} /></div>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Planned next</p>
+                          <div className="mt-0.5 text-sm text-foreground"><ExpandableText text={ci.plannedNext} /></div>
+                        </div>
+                      </div>
+                      {ci.blockers && (
+                        <div className="mt-3 flex items-start gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <ExpandableText text={ci.blockers} />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       <Pagination

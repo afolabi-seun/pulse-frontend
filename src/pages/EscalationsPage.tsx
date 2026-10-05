@@ -9,7 +9,7 @@ import { TablePageSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { formatDate } from '../lib/dates';
 import type { EscalationDto, EscalationLevel } from '../types/api';
 
@@ -21,32 +21,36 @@ const LEVEL_LABEL: Record<EscalationLevel, string> = {
 const LEVEL_VARIANT: Record<EscalationLevel, 'yellow' | 'red'> = {
   TMinus3: 'yellow', TMinus1: 'red', Overdue: 'red',
 };
+const LEVEL_ACCENT: Record<EscalationLevel, string> = {
+  TMinus3: 'border-l-yellow-400', TMinus1: 'border-l-amber-500', Overdue: 'border-l-destructive',
+};
 
 function EscalationRow({ esc, assigneeName, onOpenTask }: {
   esc: EscalationDto; assigneeName: string; onOpenTask: (taskId: string) => void;
 }) {
   return (
-    <TableRow className="cursor-pointer" onClick={() => onOpenTask(esc.taskId)}>
-      <TableCell>
-        <div className="flex items-center gap-1.5">
-          {esc.taskKey && <span className="font-mono text-xs text-muted-foreground">{esc.taskKey}</span>}
-          <span className="font-medium text-foreground hover:text-primary">{esc.taskTitle}</span>
-          <Badge label={LEVEL_LABEL[esc.level]} variant={LEVEL_VARIANT[esc.level]} />
-        </div>
-      </TableCell>
-      <TableCell className="text-muted-foreground">{esc.projectName ?? '—'}</TableCell>
-      <TableCell className="text-muted-foreground">{assigneeName}</TableCell>
-      <TableCell className="font-mono tabular-nums text-muted-foreground">
+    <div
+      className={cn('flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1.5 border-l-4 px-4 py-3 transition-colors hover:bg-muted/30', LEVEL_ACCENT[esc.level])}
+      onClick={() => onOpenTask(esc.taskId)}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        {esc.taskKey && <span className="shrink-0 font-mono text-xs text-muted-foreground">{esc.taskKey}</span>}
+        <span className="truncate font-medium text-foreground hover:text-primary">{esc.taskTitle}</span>
+        <Badge label={LEVEL_LABEL[esc.level]} variant={LEVEL_VARIANT[esc.level]} />
+      </div>
+      <span className="shrink-0 text-sm text-muted-foreground">{esc.projectName ?? '—'}</span>
+      <span className="shrink-0 text-sm text-muted-foreground">{assigneeName}</span>
+      <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
         {esc.dueDate ? formatDate(esc.dueDate) : 'No due date'}
-      </TableCell>
-      <TableCell className="text-right font-mono tabular-nums">
+      </span>
+      <span className="shrink-0 whitespace-nowrap text-right font-mono text-sm tabular-nums">
         {esc.daysUntilDue < 0 ? (
           <span className="font-medium text-destructive">{Math.abs(esc.daysUntilDue)}d late</span>
         ) : (
           <span className="text-muted-foreground">{esc.daysUntilDue}d remaining</span>
         )}
-      </TableCell>
-    </TableRow>
+      </span>
+    </div>
   );
 }
 
@@ -74,27 +78,16 @@ function EscalationGroup({
           {items.length}
         </span>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Task</TableHead>
-            <TableHead>Project</TableHead>
-            <TableHead>Assignee</TableHead>
-            <TableHead>Due</TableHead>
-            <TableHead className="text-right">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visible.map((esc) => (
-            <EscalationRow
-              key={esc.taskId}
-              esc={esc}
-              assigneeName={engineers.find((e) => e.id === esc.assigneeId)?.name ?? 'Unassigned'}
-              onOpenTask={onOpenTask}
-            />
-          ))}
-        </TableBody>
-      </Table>
+      <div className="divide-y divide-border">
+        {visible.map((esc) => (
+          <EscalationRow
+            key={esc.taskId}
+            esc={esc}
+            assigneeName={engineers.find((e) => e.id === esc.assigneeId)?.name ?? 'Unassigned'}
+            onOpenTask={onOpenTask}
+          />
+        ))}
+      </div>
       {items.length > GROUP_CAP && (
         <button
           type="button"

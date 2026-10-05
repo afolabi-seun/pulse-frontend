@@ -18,7 +18,6 @@ import { todayIso } from '../../lib/dates';
 import PageHeader from '../../components/layout/PageHeader';
 import { Pagination } from '../../components/ui/Pagination';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import ExpandableText from '../../components/checkins/ExpandableText';
 import { cn } from '@/lib/utils';
 import type { MissingEngineerDto, StandupEntryDto } from '../../types/api';
@@ -143,60 +142,47 @@ function MissingDrawer({ engineer, onClose }: { engineer: MissingEngineerDto; on
   );
 }
 
-// ── Digest table ──────────────────────────────────────────────────────────────
+// ── Digest cards ──────────────────────────────────────────────────────────────
 
 /** Check-ins shown per page. A team that straddles a page break carries on under its header on the next page. */
 const PAGE_SIZE = 25;
 
-const TABLE_CLS = '[&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3 [&_th]:py-2 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide';
-
-/** One team's check-ins, a row per engineer (and project) — comparable at a glance, blockers flagged on the row. */
+/** One team's check-ins, a card per engineer (and project) — blockers called out inline. */
 function EntriesTable({ entries }: { entries: StandupEntryDto[] }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table className={`${TABLE_CLS} table-fixed`}>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-44">Engineer</TableHead>
-              <TableHead>Completed</TableHead>
-              <TableHead>Planned next</TableHead>
-              <TableHead className="w-[22%]">Blocker</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={`${entry.engineerId}-${entry.projectId ?? 'none'}`}>
-                <TableCell className="align-top">
-                  <p className="text-sm font-semibold leading-snug text-foreground">{entry.engineerName}</p>
-                  {/* Role and project share a line, so a row isn't three lines tall before any text. */}
-                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-foreground">
-                    <span>{roleLabel(entry.role)}</span>
-                    {entry.projectName && (
-                      <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
-                        {entry.projectName}
-                      </span>
-                    )}
-                  </p>
-                </TableCell>
-                <TableCell className="align-top text-sm text-foreground"><ExpandableText text={entry.completed} lines={2} /></TableCell>
-                <TableCell className="align-top text-sm text-foreground"><ExpandableText text={entry.plannedNext} lines={2} /></TableCell>
-                <TableCell className="align-top text-sm">
-                  {entry.blockers ? (
-                    <div className="flex items-start gap-1.5 rounded-md bg-red-50 px-2 py-1.5 text-red-700 dark:bg-red-950/20 dark:text-red-400">
-                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <ExpandableText text={entry.blockers} lines={2} />
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+    <div className="space-y-2">
+      {entries.map((entry) => (
+        <Card key={`${entry.engineerId}-${entry.projectId ?? 'none'}`} className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="mb-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <p className="text-sm font-semibold leading-snug text-foreground">{entry.engineerName}</p>
+              <span className="text-[11px] text-muted-foreground">{roleLabel(entry.role)}</span>
+              {entry.projectName && (
+                <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] font-medium text-primary">
+                  {entry.projectName}
+                </span>
+              )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Completed</p>
+                <div className="mt-0.5 text-sm text-foreground"><ExpandableText text={entry.completed} lines={2} /></div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Planned next</p>
+                <div className="mt-0.5 text-sm text-foreground"><ExpandableText text={entry.plannedNext} lines={2} /></div>
+              </div>
+            </div>
+            {entry.blockers && (
+              <div className="mt-3 flex items-start gap-1.5 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-400">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <ExpandableText text={entry.blockers} lines={2} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 
