@@ -13,7 +13,7 @@ const line = (over: Partial<ProjectHoursDto> = {}): ProjectHoursDto =>
   ({ projectId: 'p1', projectName: 'OMS', totalHours: 4, kind: 'project', ...over });
 
 const item = (over: Partial<ProjectActivityItemDto>): ProjectActivityItemDto =>
-  ({ taskId: 't', label: 'A task', key: null, status: 'active', hours: 1, people: [], ...over });
+  ({ date: '2026-10-04', taskId: 't', label: 'A task', key: null, status: 'active', hours: 1, people: [], ...over });
 
 const activity = (over: Partial<ProjectTimeActivityDto> = {}): ProjectTimeActivityDto => ({
   kind: 'project', name: 'OMS', totalHours: 0, items: [], people: [], ...over,
@@ -120,6 +120,30 @@ describe('ProjectTimeDetail', () => {
 
     expect(screen.getByText('Private task')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('groups items by day, with a heading per day and the same task on different days as separate rows', () => {
+    ready(activity({
+      totalHours: 4,
+      items: [
+        item({ date: '2026-10-04', taskId: 't1', label: 'SMS spike', hours: 3, people: [{ engineerId: 'e1', name: 'Emma Wilson', hours: 3 }] }),
+        item({ date: '2026-10-03', taskId: 't1', label: 'SMS spike', hours: 1, people: [{ engineerId: 'e1', name: 'Emma Wilson', hours: 1 }] }),
+      ],
+      people: [{ engineerId: 'e1', name: 'Emma Wilson', tasks: 1, hours: 4 }],
+    }));
+    render();
+
+    const rows = screen.getAllByRole('row').map((r) => r.textContent ?? '');
+    // The more recent day's heading comes first, each followed by its own "SMS spike" row — not
+    // one row with both days' hours added together.
+    const iDay4 = rows.findIndex((t) => /4 Oct/.test(t) && !t.includes('SMS spike'));
+    const iRow4 = rows.findIndex((t) => t.includes('SMS spike') && t.includes('3h'));
+    const iDay3 = rows.findIndex((t) => /3 Oct/.test(t) && !t.includes('SMS spike'));
+    const iRow3 = rows.findIndex((t) => t.includes('SMS spike') && t.includes('1h') && !t.includes('3h'));
+    expect(iDay4).toBeGreaterThan(-1);
+    expect(iRow4).toBeGreaterThan(iDay4);
+    expect(iDay3).toBeGreaterThan(iRow4);
+    expect(iRow3).toBeGreaterThan(iDay3);
   });
 
   it('shows the first 50 tasks and offers the rest', () => {

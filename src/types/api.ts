@@ -528,6 +528,7 @@ export interface ProjectActivityPersonDto { engineerId: string; name: string; ho
 
 /** `taskId` is null for a category row (meetings, admin, leave, other). */
 export interface ProjectActivityItemDto {
+  date: string;
   taskId: string | null;
   label: string;
   key: string | null;
