@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProjectTimeActivity } from '../../api/timeEntries';
 import Badge from '../ui/Badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { formatDate } from '../../lib/dates';
 import type { ProjectActivityItemDto, ProjectHoursDto } from '../../types/api';
 
 const STATUS: Record<string, { label: string; variant: 'green' | 'red' | 'gray' | 'yellow' | 'blue' }> = {
@@ -67,6 +68,15 @@ export default function ProjectTimeDetail({ project, from, to }: { project: Proj
   const active = hasItems ? tab : 'people';
   const itemsLabel = kind === 'general' ? 'By category' : 'By task';
   const shownItems = showAll ? data.items : data.items.slice(0, MAX_ROWS);
+  // Items already arrive sorted most-recent-day-first; grouping here just inserts a heading
+  // between runs of the same date rather than re-sorting anything.
+  const itemsByDate: [string, ProjectActivityItemDto[]][] = [];
+  for (const item of shownItems) {
+    const lastGroup = itemsByDate[itemsByDate.length - 1];
+    if (lastGroup && lastGroup[0] === item.date) lastGroup[1].push(item);
+    else itemsByDate.push([item.date, [item]]);
+  }
+  const itemsColSpan = kind === 'general' ? 3 : 4;
 
   return (
     <div className="space-y-3 bg-muted/20 px-4 py-4" data-testid="project-time-detail">
@@ -87,21 +97,30 @@ export default function ProjectTimeDetail({ project, from, to }: { project: Proj
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shownItems.map((item) => {
-                const status = item.status ? STATUS[item.status] : null;
-                return (
-                  <TableRow key={item.taskId ?? item.label}>
-                    <TableCell className="max-w-[18rem] align-top"><ItemLabel item={item} /></TableCell>
-                    {kind !== 'general' && (
-                      <TableCell className="align-top">{status ? <Badge label={status.label} variant={status.variant} /> : '—'}</TableCell>
-                    )}
-                    <TableCell className="align-top text-xs text-muted-foreground">
-                      {item.people.map((p) => `${p.name} ${round2(p.hours)}h`).join(' · ')}
+              {itemsByDate.map(([date, dateItems]) => (
+                <Fragment key={date}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={itemsColSpan} className="!py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {formatDate(date)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right align-top font-semibold tabular-nums text-foreground">{round2(item.hours)}h</TableCell>
                   </TableRow>
-                );
-              })}
+                  {dateItems.map((item) => {
+                    const status = item.status ? STATUS[item.status] : null;
+                    return (
+                      <TableRow key={`${item.taskId ?? item.label}-${item.date}`}>
+                        <TableCell className="max-w-[18rem] align-top"><ItemLabel item={item} /></TableCell>
+                        {kind !== 'general' && (
+                          <TableCell className="align-top">{status ? <Badge label={status.label} variant={status.variant} /> : '—'}</TableCell>
+                        )}
+                        <TableCell className="align-top text-xs text-muted-foreground">
+                          {item.people.map((p) => `${p.name} ${round2(p.hours)}h`).join(' · ')}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-right align-top font-semibold tabular-nums text-foreground">{round2(item.hours)}h</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </Fragment>
+              ))}
             </TableBody>
             <TableFooter>
               <TableRow>
