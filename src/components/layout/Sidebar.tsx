@@ -133,7 +133,7 @@ const ADMIN: NavItem[] = [
   { to: '/admin/users',      label: 'Users',      icon: UsersRound, description: 'Create, deactivate, and manage user accounts and roles', cap: ['pm-or-above', 'executive-read', 'hr-read'] },
   { to: '/admin/teams',      label: 'Teams',      icon: Settings2,  description: 'Create and configure teams, assign team leads, and set departments', cap: 'pm-or-above' },
   { to: '/admin/thresholds', label: 'Thresholds', icon: Sliders,    description: 'Configure overwork detection thresholds and escalation timing rules', cap: 'any-head' },
-  { to: '/admin/integrations', label: 'Integrations', icon: Plug,    description: "Connect your organization's own Slack workspace for alerts", cap: 'any-head' },
+  { to: '/admin/integrations', label: 'Integrations', icon: Plug,    description: "Connect your organization's Slack workspace and Google Chat spaces for alerts", cap: 'any-head' },
   { to: '/admin/audit-log',      label: 'Audit Log',     icon: ScrollText, description: 'Full history of system events, user actions, and administrative changes', cap: 'head-only' },
   { to: '/admin/failed-emails',  label: 'Failed Emails', icon: Mail,       description: 'View and retry failed outbound email notifications', cap: 'head-only' },
 ];
