@@ -54,6 +54,15 @@ export interface CurrentOrganizationDto {
   slug: string;
 }
 
+/** GET /integrations/slack — the caller's organization's Slack connection. */
+export interface SlackConnectionDto {
+  /** Slack is set up on this Pulse server (OAuth app + encryption key configured). */
+  available: boolean;
+  connected: boolean;
+  teamName: string | null;
+  connectedAt: string | null;
+}
+
 export interface AppMetaDto {
   roles: RoleMetaDto[];
   taskStatuses: EnumMetaDto[];
