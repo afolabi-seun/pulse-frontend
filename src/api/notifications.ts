@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from './client';
-import type { NotificationDto, PagedResult } from '../types/api';
+import type { NotificationDto, PagedResult, NotificationPreferenceDto } from '../types/api';
 
 export const notificationKeys = {
   all:  ()               => ['notifications']          as const,
@@ -31,5 +31,37 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () => client.post('/notifications/read-all'),
     onSuccess: () => qc.invalidateQueries({ queryKey: notificationKeys.all() }),
+  });
+}
+
+export const notificationPreferenceKeys = {
+  all: () => ['notifications', 'preferences'] as const,
+};
+
+/** Every notification kind and whether it's emailed to the caller. */
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: notificationPreferenceKeys.all(),
+    queryFn: () => client.get<NotificationPreferenceDto[]>('/notifications/preferences').then((r) => r.data!),
+  });
+}
+
+/** Switches email on or off for one kind — optimistically, rolled back if the save fails. */
+export function useUpdateNotificationPreference() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, email }: { kind: string; email: boolean }) =>
+      client.put<NotificationPreferenceDto>(`/notifications/preferences/${encodeURIComponent(kind)}`, { email }).then((r) => r.data!),
+    onMutate: async ({ kind, email }) => {
+      await qc.cancelQueries({ queryKey: notificationPreferenceKeys.all() });
+      const previous = qc.getQueryData<NotificationPreferenceDto[]>(notificationPreferenceKeys.all());
+      qc.setQueryData<NotificationPreferenceDto[]>(notificationPreferenceKeys.all(),
+        (prefs) => prefs?.map((p) => (p.kind === kind ? { ...p, email } : p)));
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(notificationPreferenceKeys.all(), context.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: notificationPreferenceKeys.all() }),
   });
 }

@@ -84,6 +84,17 @@ export interface GoogleChatLinkCodeDto {
   command: string;
 }
 
+/** One notification kind and whether it's emailed to the caller (GET /notifications/preferences). */
+export interface NotificationPreferenceDto {
+  kind: string;
+  category: string;
+  label: string;
+  description: string;
+  email: boolean;
+  /** A security notice: always emailed. */
+  emailLocked: boolean;
+}
+
 export interface AppMetaDto {
   roles: RoleMetaDto[];
   taskStatuses: EnumMetaDto[];
