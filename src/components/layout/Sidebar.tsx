@@ -46,6 +46,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TimerIndicator from '../time/TimerIndicator';
+import OrganizationName from './OrganizationName';
 import type { Capability } from '../../lib/auth';
 
 const COLLAPSE_KEY = 'pulse-sidebar-collapsed';
@@ -276,7 +277,12 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary shadow-md">
           <AudioWaveform className="h-4 w-4 text-white" />
         </div>
-        {!collapsed && <span className="flex-1 text-base font-bold tracking-tight">Pulse</span>}
+        {!collapsed && (
+          <div className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="text-base font-bold tracking-tight">Pulse</span>
+            <OrganizationName className="truncate text-xs text-sidebar-muted-foreground" />
+          </div>
+        )}
         {/* Close button — mobile only, collapsing the rail makes no sense on a drawer overlay */}
         <button
           type="button"
