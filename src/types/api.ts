@@ -47,6 +47,13 @@ export interface PriorityScaleEntryDto {
   criteria: string;
 }
 
+/** The signed-in user's own organization (GET /organization). */
+export interface CurrentOrganizationDto {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface AppMetaDto {
   roles: RoleMetaDto[];
   taskStatuses: EnumMetaDto[];
