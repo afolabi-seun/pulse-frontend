@@ -8,6 +8,7 @@ import ErrorState from '../../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import GoogleChatCard from './GoogleChatCard';
 import { formatDateTime } from '../../lib/dates';
 
 /** Why an "Add to Slack" install came back unsuccessful — the `reason` the API's OAuth callback redirects with. */
@@ -48,7 +49,7 @@ export default function IntegrationsPage() {
 
   return (
     <div>
-      <PageHeader title="Integrations" description="Connect the tools your organization uses for alerts." />
+      <PageHeader title="Integrations" description="Connect the chat tools your organization uses for alerts." />
 
       {error ? (
         <ErrorState onRetry={() => void refetch()} />
@@ -90,6 +91,10 @@ export default function IntegrationsPage() {
           )}
         </Card>
       )}
+
+      <div className="mt-4">
+        <GoogleChatCard />
+      </div>
     </div>
   );
 }
