@@ -47,6 +47,54 @@ export interface PriorityScaleEntryDto {
   criteria: string;
 }
 
+/** The signed-in user's own organization (GET /organization). */
+export interface CurrentOrganizationDto {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+/** GET /integrations/slack — the caller's organization's Slack connection. */
+export interface SlackConnectionDto {
+  /** Slack is set up on this Pulse server (OAuth app + encryption key configured). */
+  available: boolean;
+  connected: boolean;
+  teamName: string | null;
+  connectedAt: string | null;
+}
+
+/** A Google Chat space linked to the caller's organization. */
+export interface GoogleChatSpaceDto {
+  id: string;
+  spaceId: string;
+  displayName: string;
+}
+
+/** GET /integrations/google-chat — whether Chat is set up, and the organization's linked spaces. */
+export interface GoogleChatConnectionDto {
+  available: boolean;
+  spaces: GoogleChatSpaceDto[];
+}
+
+/** POST /integrations/google-chat/link-codes — a one-time code to type in a space. */
+export interface GoogleChatLinkCodeDto {
+  code: string;
+  expiresAt: string;
+  /** What to send in the space, e.g. "@Pulse link ABCD-2345". */
+  command: string;
+}
+
+/** One notification kind and whether it's emailed to the caller (GET /notifications/preferences). */
+export interface NotificationPreferenceDto {
+  kind: string;
+  category: string;
+  label: string;
+  description: string;
+  email: boolean;
+  /** A security notice: always emailed. */
+  emailLocked: boolean;
+}
+
 export interface AppMetaDto {
   roles: RoleMetaDto[];
   taskStatuses: EnumMetaDto[];
