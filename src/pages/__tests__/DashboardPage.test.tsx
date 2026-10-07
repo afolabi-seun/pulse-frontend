@@ -192,7 +192,8 @@ describe('DashboardPage', () => {
 
     renderWithProviders(<DashboardPage />);
     expect(screen.getByText('3.5')).toBeInTheDocument();
-    expect(screen.getByText('days, created to done')).toBeInTheDocument();
+    expect(screen.getByText('created to done')).toBeInTheDocument();
+    expect(screen.getByText('days')).toBeInTheDocument();
   });
 
   it('shows a dash for cycle time instead of 0 when nothing has completed yet', () => {
@@ -216,7 +217,8 @@ describe('DashboardPage', () => {
 
     renderWithProviders(<DashboardPage />);
     expect(screen.getByText('4.3')).toBeInTheDocument();
-    expect(screen.getByText('hrs, request to approval')).toBeInTheDocument();
+    expect(screen.getByText('request to approval')).toBeInTheDocument();
+    expect(screen.getByText('hrs')).toBeInTheDocument();
   });
 
   it('shows a dash for PR approval time instead of 0 when nothing has been approved yet', () => {
