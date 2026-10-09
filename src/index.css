@@ -118,6 +118,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* A native <select>'s popup list is drawn by the browser, and Chrome paints it on its own background while the options inherit the
+     select's text colour. The app's selects are transparent with light text in dark mode, so the options came out light-on-white and
+     only the hovered row was readable (Safari draws its own menu and was fine). Giving the options a solid theme background and
+     matching text fixes every native select at once, in both themes. */
+  select option,
+  select optgroup {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+  }
 }
 
 @keyframes page-in {
