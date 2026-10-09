@@ -360,7 +360,7 @@ export default function ImportPage() {
             project_name: 'Must match an existing project name exactly (case-insensitive).',
             acceptance_criteria: 'What "done" looks like for this task. Plain text.',
             points: 'Story points — a whole number, e.g. 3 or 5. Leave blank to import ungroomed and estimate later.',
-            due_date: 'Format: YYYY-MM-DD, e.g. 2025-09-30. Can be left blank — but required once points, priority, or assignee_email is set for that row.',
+            due_date: 'Format: YYYY-MM-DD (2026-10-16) or DD/MM/YYYY (16/10/2026) — the day always comes first. Can be left blank — but required once points, priority, or assignee_email is set for that row.',
             priority: 'A whole number from 1 (lowest) to 5 (highest). Leave blank to leave unset.',
             type: 'One of: Feature, Bug, Test, Review, Chore. Defaults to Feature.',
             assignee_email: 'Must match an existing user email. Leave blank to leave unassigned.',
