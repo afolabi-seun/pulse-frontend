@@ -489,6 +489,18 @@ export function useAssigneeEditTask(taskId: string) {
 }
 
 /** Omit qaEngineerId (or pass undefined) to keep the automatic reviewer pick. */
+/** For a task stuck In QA because its QA task was deleted: returns it to Active so it can be sent to QA again. */
+export function useRecoverMissingQa(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => client.post<TaskDto>(`/tasks/${taskId}/recover-missing-qa`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
+      qc.invalidateQueries({ queryKey: taskKeys.all() });
+    },
+  });
+}
+
 export function useSendToQa(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
