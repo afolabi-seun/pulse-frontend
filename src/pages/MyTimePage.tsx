@@ -538,7 +538,8 @@ export default function MyTimePage() {
               {breakdownCell?.row.label} — {breakdownCell && formatShortDate(breakdownCell.dateIso)}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
+          {/* The list scrolls on its own so "Add another session" and Done stay on screen however many sessions the day has. */}
+          <div className="scroll-visible -mr-2 max-h-[40vh] space-y-2 overflow-y-auto pr-2">
             {breakdownEntries.map((entry) => (
               <div key={entry.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
                 <div className="min-w-0 flex-1 space-y-1">
