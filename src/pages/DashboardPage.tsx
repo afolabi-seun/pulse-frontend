@@ -361,31 +361,35 @@ export default function DashboardPage() {
                 <Skeleton className="h-40 w-full" />
               ) : (
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                  <div className={STAT_GRID}>
                     <StatCard
-                      title="Delivered pts"
+                      title="Delivered"
                       value={pmoReport?.totalDeliveredPoints ?? 0}
+                      unit="pts"
                       icon={pointsDelta < 0
                         ? <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
                         : <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
                       iconBg={pointsDelta < 0 ? 'bg-red-50 dark:bg-red-950/40' : 'bg-emerald-50 dark:bg-emerald-950/40'}
-                      sub={`${pointsDelta >= 0 ? '+' : ''}${pointsDelta} vs last week`}
+                      sub={`${pointsDelta >= 0 ? '+' : '−'}${Math.abs(pointsDelta)} vs last week`}
+                      subTone={pointsDelta > 0 ? 'good' : pointsDelta < 0 ? 'bad' : undefined}
                       to="/reports"
                     />
                     <StatCard
                       title="Cycle time"
                       value={pmoReport?.avgCycleTimeDays != null ? pmoReport.avgCycleTimeDays.toFixed(1) : '—'}
+                      unit={pmoReport?.avgCycleTimeDays != null ? 'days' : undefined}
                       icon={<Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                       iconBg="bg-blue-50 dark:bg-blue-950/40"
-                      sub={pmoReport?.avgCycleTimeDays != null ? 'days, created to done' : 'Nothing completed yet'}
+                      sub={pmoReport?.avgCycleTimeDays != null ? 'created to done' : 'Nothing completed yet'}
                       to="/reports"
                     />
                     <StatCard
-                      title="PR approval time"
+                      title="PR approval"
                       value={pmoReport?.avgPrApprovalHours != null ? pmoReport.avgPrApprovalHours.toFixed(1) : '—'}
+                      unit={pmoReport?.avgPrApprovalHours != null ? 'hrs' : undefined}
                       icon={<GitPullRequest className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
                       iconBg="bg-violet-50 dark:bg-violet-950/40"
-                      sub={pmoReport?.avgPrApprovalHours != null ? 'hrs, request to approval' : 'None approved yet'}
+                      sub={pmoReport?.avgPrApprovalHours != null ? 'request to approval' : 'None approved yet'}
                       to="/reports"
                     />
                     <StatCard
@@ -1050,42 +1054,61 @@ export default function DashboardPage() {
 interface StatCardProps {
   title: string;
   value: string | number;
+  /** A short unit shown small beside the value ("pts", "days", "hrs"), so the label underneath can stay a phrase. */
+  unit?: string;
   icon: React.ReactNode;
   iconBg?: string;
   sub?: string;
+  /** Colours the sub line when it states a direction (a change against last week). */
+  subTone?: 'good' | 'bad';
   accent?: 'red' | 'yellow';
   to?: string;
 }
 
-function StatCard({ title, value, icon, iconBg, sub, accent, to }: StatCardProps) {
+/** The grid the dashboard's tile rows use: as many columns as fit at a readable width, wrapping instead of squeezing every tile into one row. */
+const STAT_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3';
+
+function StatCard({ title, value, unit, icon, iconBg, sub, subTone, accent, to }: StatCardProps) {
   const content = (
-    <CardContent className="p-4">
-      <div className="mb-2.5 flex items-center gap-2.5">
+    <CardContent className="flex h-full flex-col gap-1 p-4">
+      {/* Title and icon share one line, the title taking whatever the icon leaves, so a long title is shortened with an ellipsis (and a tooltip)
+          instead of being clipped by its neighbour or wrapping and pushing the value out of line with the other tiles. */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-sm font-medium text-muted-foreground" title={title}>{title}</p>
         <div className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
           iconBg ?? 'bg-muted',
         )}>
           {icon}
         </div>
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
       </div>
       <p className={cn(
-        'font-mono text-3xl font-bold tabular-nums tracking-tight',
+        'flex items-baseline gap-1 font-mono text-3xl font-bold tabular-nums tracking-tight',
         accent === 'red' ? 'text-red-600' : accent === 'yellow' ? 'text-amber-600' : 'text-foreground',
       )}>
         {value}
+        {unit && <span className="font-sans text-sm font-medium tracking-normal text-muted-foreground">{unit}</span>}
       </p>
-      {sub && <p className="mt-1 text-xs text-muted-foreground/70">{sub}</p>}
+      {sub && (
+        <p className={cn(
+          'line-clamp-2 text-xs leading-snug',
+          subTone === 'good' ? 'text-emerald-600 dark:text-emerald-400'
+            : subTone === 'bad' ? 'text-red-600 dark:text-red-400'
+            : 'text-muted-foreground/80',
+        )}>
+          {sub}
+        </p>
+      )}
     </CardContent>
   );
 
   return (
     <Card className={cn(
-      'transition-shadow hover:shadow-md',
+      'h-full transition-shadow hover:shadow-md',
       accent === 'red'    ? 'border-red-200 dark:border-red-900/40'    : '',
       accent === 'yellow' ? 'border-amber-200 dark:border-amber-900/40' : '',
     )}>
-      {to ? <Link to={to} className="block">{content}</Link> : content}
+      {to ? <Link to={to} className="block h-full">{content}</Link> : content}
     </Card>
   );
 }
