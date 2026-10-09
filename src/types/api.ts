@@ -361,6 +361,8 @@ export interface TaskDto {
   backendAssigneeName: string | null;
   parentTaskId: string | null;
   qaTaskId: string | null;
+  /** In QA, but the QA task no longer exists, so nothing can accept the task (task detail only). */
+  qaTaskMissing?: boolean;
   reactivationReason: string | null;
   pauseNote: string | null;
   createdAt: string;

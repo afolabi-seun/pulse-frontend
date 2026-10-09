@@ -25,6 +25,7 @@ import {
   MessageSquarePlus,
   Moon,
   Mail,
+  Archive,
   Radar,
   ScrollText,
   Search,
@@ -136,6 +137,7 @@ const ADMIN: NavItem[] = [
   { to: '/admin/integrations', label: 'Integrations', icon: Plug,    description: "Connect your organization's Slack workspace and Google Chat spaces for alerts", cap: 'any-head' },
   { to: '/admin/audit-log',      label: 'Audit Log',     icon: ScrollText, description: 'Full history of system events, user actions, and administrative changes', cap: 'head-only' },
   { to: '/admin/failed-emails',  label: 'Failed Emails', icon: Mail,       description: 'View and retry failed outbound email notifications', cap: 'head-only' },
+  { to: '/admin/task-archive', label: 'Task Archive', icon: Archive, description: 'Archive tasks created before a date, and restore archived tasks', cap: 'pmo-only' },
 ];
 
 interface SectionProps {

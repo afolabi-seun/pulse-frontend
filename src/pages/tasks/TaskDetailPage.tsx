@@ -4,7 +4,7 @@ import { useForm, Controller, type UseFormRegisterReturn } from 'react-hook-form
 import { toast } from 'sonner';
 import { AlertTriangle, Link2, X, Shuffle, FlaskConical, XCircle, Info, Undo2, Pause, Sparkles, UserPlus, ArrowLeftRight, Pencil, GitPullRequest } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { useTask, useUpdateTask, useDeleteTask, useFlagBlocker, useClearBlocker, usePauseTask, useResumeTask, useReturnTaskToBacklog, usePreviewAssign, useAssignTask, useLoanTask, useRecallTask, useTaskDependencies, useAddDependency, useRemoveDependency, useTaskList, useSendToQa, useQaSendCandidates, useProposeQaRejection, useConfirmQaRejection, useWithdrawQaRejection, useRespondToQaRejection, useMarkTaskDone, useGroomOwnTask, useAssigneeEditTask, useSubtasks, useAddSubtask, useToggleSubtask, useDeleteSubtask, useLoanSubtask, useRecallSubtask, useTaskMentionCandidates, useHandOffToFrontend, useHandOffToBackend, useHandoffCandidates, useRequestPrApproval, useApprovePrApproval, useRejectPrApproval, useReassignPrApprover } from '../../api/tasks';
+import { useTask, useUpdateTask, useDeleteTask, useFlagBlocker, useClearBlocker, usePauseTask, useResumeTask, useReturnTaskToBacklog, usePreviewAssign, useAssignTask, useLoanTask, useRecallTask, useTaskDependencies, useAddDependency, useRemoveDependency, useTaskList, useSendToQa, useRecoverMissingQa, useQaSendCandidates, useProposeQaRejection, useConfirmQaRejection, useWithdrawQaRejection, useRespondToQaRejection, useMarkTaskDone, useGroomOwnTask, useAssigneeEditTask, useSubtasks, useAddSubtask, useToggleSubtask, useDeleteSubtask, useLoanSubtask, useRecallSubtask, useTaskMentionCandidates, useHandOffToFrontend, useHandOffToBackend, useHandoffCandidates, useRequestPrApproval, useApprovePrApproval, useRejectPrApproval, useReassignPrApprover } from '../../api/tasks';
 import { useEpicsByProject } from '../../api/epics';
 import { useSubmitFeedback } from '../../api/feedback';
 import { useThresholds } from '../../api/thresholds';
@@ -901,6 +901,7 @@ export default function TaskDetailPage() {
   const addDep         = useAddDependency(id!);
   const removeDep      = useRemoveDependency(id!);
   const sendToQa       = useSendToQa(id!);
+  const recoverMissingQa = useRecoverMissingQa(id!);
   const handOffToFrontend = useHandOffToFrontend(id!);
   const handOffToBackend = useHandOffToBackend(id!);
   const proposeQaRejection  = useProposeQaRejection(id!);
@@ -1289,7 +1290,33 @@ export default function TaskDetailPage() {
             </div>
           )}
 
-          {task.qaTaskId && (
+          {task.qaTaskMissing && (
+            <div
+              role="alert"
+              className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-950/20"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="min-w-0 flex-1 text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-semibold">This task's QA task no longer exists</span>, so nothing can accept it and it cannot be closed.
+                Return it to Active, then send it to QA again.
+              </p>
+              {canAct && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={recoverMissingQa.isPending}
+                  onClick={() => recoverMissingQa.mutate(undefined, {
+                    onSuccess: () => toast.success('Returned to Active. You can now send it to QA again.'),
+                    onError: (e) => toast.error((e as Error).message ?? 'Could not return the task to Active.'),
+                  })}
+                >
+                  Return to Active
+                </Button>
+              )}
+            </div>
+          )}
+
+          {task.qaTaskId && !task.qaTaskMissing && (
             <div className="mt-4 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-3 dark:border-purple-900/40 dark:bg-purple-950/20">
               <FlaskConical className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               <p className="text-xs font-medium text-purple-700 dark:text-purple-400">
@@ -1404,7 +1431,7 @@ export default function TaskDetailPage() {
             {canAct && task.status === 'paused' && (
               <Button variant="secondary" size="sm" onClick={handleResume} loading={resumeTask.isPending}>Resume task</Button>
             )}
-            {task.status === 'inQa' && (
+            {task.status === 'inQa' && !task.qaTaskMissing && (
               <p className="text-xs text-muted-foreground italic">Awaiting QA review. Accept via the QA task or wait for feedback.</p>
             )}
             {/* QA task actions — shown when this IS the QA task (has parentTaskId) */}
