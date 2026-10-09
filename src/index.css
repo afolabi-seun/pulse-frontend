@@ -130,6 +130,17 @@
   }
 }
 
+/* A scroll area that always shows its scrollbar. macOS and phones hide overlay scrollbars until you scroll, so a list that is clipped
+   (a day with many sessions) gave no hint there was more above or below. */
+.scroll-visible {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+}
+.scroll-visible::-webkit-scrollbar { width: 8px; }
+.scroll-visible::-webkit-scrollbar-track { background: transparent; }
+.scroll-visible::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.5); border-radius: 9999px; }
+.scroll-visible::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.75); }
+
 @keyframes page-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
