@@ -50,6 +50,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TimerIndicator from '../time/TimerIndicator';
 import OrganizationName from './OrganizationName';
+import { searchShortcutLabel } from '../../lib/platform';
 import { useOrganizationLogo } from '../../api/organization';
 import type { Capability } from '../../lib/auth';
 
@@ -328,7 +329,7 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
         <button
           type="button"
           onClick={onOpenPalette}
-          title={collapsed ? 'Search…  ⌘K' : undefined}
+          title={collapsed ? `Search…  ${searchShortcutLabel()}` : undefined}
           className={cn(
             'mb-2 flex w-full items-center rounded-md py-2 text-xs text-sidebar-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
             collapsed ? 'justify-center px-0' : 'gap-2 px-2.5',
@@ -338,7 +339,7 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
           {!collapsed && (
             <>
               <span className="flex-1 text-left">Search…</span>
-              <kbd className="rounded border border-sidebar-border bg-sidebar-muted px-1 py-0.5 text-[9px] leading-none">⌘K</kbd>
+              <kbd className="rounded border border-sidebar-border bg-sidebar-muted px-1 py-0.5 text-[9px] leading-none">{searchShortcutLabel()}</kbd>
             </>
           )}
         </button>
