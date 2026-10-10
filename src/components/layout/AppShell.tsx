@@ -8,6 +8,7 @@ import DemoBanner from '../DemoBanner';
 import GuidedTour from '../GuidedTour';
 import Spinner from '../ui/Spinner';
 import { useSignalR } from '../../hooks/useSignalR';
+import { useApplyOrganizationBrand } from '../../api/organization';
 
 const EXACT_TITLES: Record<string, string> = {
   '/dashboard':                  'Dashboard',
@@ -45,6 +46,7 @@ function resolveTitle(pathname: string): string {
 
 export default function AppShell() {
   useSignalR();
+  useApplyOrganizationBrand();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
