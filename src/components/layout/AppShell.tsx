@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { AudioWaveform, Menu } from 'lucide-react';
+import { AudioWaveform, Menu, Search } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
 import CommandPalette from '../CommandPalette';
@@ -98,10 +98,19 @@ export default function AppShell() {
           </button>
           <div className="flex items-center gap-2">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary">
-              <AudioWaveform className="h-3.5 w-3.5 text-white" />
+              <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <span className="text-sm font-bold tracking-tight">Pulse</span>
           </div>
+          {/* The sidebar's search button is behind the menu on a phone, and there's no keyboard shortcut to fall back on. */}
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6" id="main-content">

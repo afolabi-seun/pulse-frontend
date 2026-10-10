@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Joyride, type EventData, STATUS, type Step } from 'react-joyride';
 
 const STORAGE_KEY = 'pulse_hasSeenTour';
+import { searchShortcutLabel } from '../lib/platform';
 
 const STEPS: Step[] = [
   {
@@ -56,7 +57,7 @@ const STEPS: Step[] = [
   {
     target: '#main-content',
     title: "You're all set",
-    content: 'That\'s the core of Pulse. Use ⌘K to search for anything, or click the ? icons throughout the app for context-specific help.',
+    content: `That's the core of Pulse. Use ${searchShortcutLabel()} to search for anything, or click the ? icons throughout the app for context-specific help.`,
     placement: 'center',
   },
 ];

@@ -22,6 +22,7 @@ import TaskPreviewDrawer from '../components/tasks/TaskPreviewDrawer';
 import Badge from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
 import { DashboardSkeleton, Skeleton } from '../components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../components/ui/ErrorState';
 import HelpTooltip from '../components/ui/HelpTooltip';
 import StatCard, { STAT_GRID } from '../components/ui/StatCard';
@@ -1016,7 +1017,7 @@ export default function DashboardPage() {
               myPerformanceLoading ? (
                 <Skeleton className="h-24 w-full" />
               ) : !myPerformance ? (
-                <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">No performance data yet.</CardContent></Card>
+                <Card><EmptyState size="sm" icon={Gauge} title="No performance data yet." description="Your numbers appear here once you've completed some tasks." /></Card>
               ) : (
                 <MyPerformanceGrid m={myPerformance} />
               )
