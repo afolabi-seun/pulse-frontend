@@ -46,6 +46,7 @@ const FailedEmailsPage = lazy(() => import('./pages/admin/FailedEmailsPage'));
 const TaskArchivePage = lazy(() => import('./pages/admin/TaskArchivePage'));
 const ThresholdsPage = lazy(() => import('./pages/admin/ThresholdsPage'));
 const IntegrationsPage = lazy(() => import('./pages/admin/IntegrationsPage'));
+const BrandingPage = lazy(() => import('./pages/admin/BrandingPage'));
 const TeamsPage = lazy(() => import('./pages/admin/TeamsPage'));
 const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPreferencesPage'));
 const ProjectDetailPage = lazy(() => import('./pages/projects/ProjectDetailPage'));
@@ -201,6 +202,7 @@ export const router = createBrowserRouter([
             element: <PrivateRoute cap="head-only" />,
             children: [
               { path: 'admin/audit-log', element: <AuditLogPage /> },
+              { path: 'admin/branding', element: <BrandingPage /> },
             ],
           },
           {

@@ -39,6 +39,7 @@ import {
   X,
   Zap,
   Plug,
+  Palette,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { NavLink, Link, useLocation } from 'react-router-dom';
@@ -49,6 +50,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TimerIndicator from '../time/TimerIndicator';
 import OrganizationName from './OrganizationName';
+import { useOrganizationLogo } from '../../api/organization';
 import type { Capability } from '../../lib/auth';
 
 const COLLAPSE_KEY = 'pulse-sidebar-collapsed';
@@ -134,6 +136,7 @@ const ADMIN: NavItem[] = [
   { to: '/admin/users',      label: 'Users',      icon: UsersRound, description: 'Create, deactivate, and manage user accounts and roles', cap: ['pm-or-above', 'executive-read', 'hr-read'] },
   { to: '/admin/teams',      label: 'Teams',      icon: Settings2,  description: 'Create and configure teams, assign team leads, and set departments', cap: 'pm-or-above' },
   { to: '/admin/thresholds', label: 'Thresholds', icon: Sliders,    description: 'Configure overwork detection thresholds and escalation timing rules', cap: 'any-head' },
+  { to: '/admin/branding',   label: 'Branding',   icon: Palette,    description: "Set your organization's name, accent colour and logo", cap: 'head-only' },
   { to: '/admin/integrations', label: 'Integrations', icon: Plug,    description: "Connect your organization's Slack workspace and Google Chat spaces for alerts", cap: 'any-head' },
   { to: '/admin/audit-log',      label: 'Audit Log',     icon: ScrollText, description: 'Full history of system events, user actions, and administrative changes', cap: 'head-only' },
   { to: '/admin/failed-emails',  label: 'Failed Emails', icon: Mail,       description: 'View and retry failed outbound email notifications', cap: 'head-only' },
@@ -261,6 +264,7 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
   const isAccountant = allow('accountant-read');
   const { theme, toggleTheme } = useTheme();
   const { collapsed, toggleCollapsed } = useSidebarCollapse();
+  const logoUrl = useOrganizationLogo();
 
   return (
     <aside
@@ -278,9 +282,13 @@ export default function Sidebar({ open, onClose, onOpenPalette }: SidebarProps) 
     >
       {/* Logo */}
       <div className={cn('flex h-14 shrink-0 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'gap-2.5 px-4')}>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary shadow-md">
-          <AudioWaveform className="h-4 w-4 text-white" />
-        </div>
+        {logoUrl ? (
+          <img src={logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-lg object-contain" />
+        ) : (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary shadow-md">
+            <AudioWaveform className="h-4 w-4 text-primary-foreground" />
+          </div>
+        )}
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col leading-tight">
             <span className="text-base font-bold tracking-tight">Pulse</span>
