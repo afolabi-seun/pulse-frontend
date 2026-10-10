@@ -9,6 +9,8 @@ import { TablePageSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
+import StatCard, { STAT_GRID } from '../components/ui/StatCard';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import { cn } from '@/lib/utils';
 import { formatDate } from '../lib/dates';
 import type { EscalationDto, EscalationLevel } from '../types/api';
@@ -24,6 +26,13 @@ const LEVEL_VARIANT: Record<EscalationLevel, 'yellow' | 'red'> = {
 const LEVEL_ACCENT: Record<EscalationLevel, string> = {
   TMinus3: 'border-l-yellow-400', TMinus1: 'border-l-amber-500', Overdue: 'border-l-destructive',
 };
+
+/** The page's three groups, most urgent first. `param` is the group's value in the URL's `level` filter. */
+const GROUPS: { level: EscalationLevel; param: string; label: string; icon: React.ElementType; iconCls: string; iconBg: string; accent?: 'red' | 'yellow' }[] = [
+  { level: 'Overdue', param: 'overdue',    label: 'Overdue',       icon: AlertCircle,   iconCls: 'text-red-500',    iconBg: 'bg-red-50 dark:bg-red-950/40',       accent: 'red' },
+  { level: 'TMinus1', param: 'tomorrow',   label: 'Due tomorrow',  icon: AlertTriangle, iconCls: 'text-amber-500',  iconBg: 'bg-amber-50 dark:bg-amber-950/40',   accent: 'yellow' },
+  { level: 'TMinus3', param: 'three-days', label: 'Due in 3 days', icon: Clock,         iconCls: 'text-yellow-500', iconBg: 'bg-yellow-50 dark:bg-yellow-950/40' },
+];
 
 function EscalationRow({ esc, assigneeName, onOpenTask }: {
   esc: EscalationDto; assigneeName: string; onOpenTask: (taskId: string) => void;
@@ -109,14 +118,16 @@ export default function EscalationsPage() {
   const { data: escalations, isLoading, error, refetch } = useEscalations();
   const { data: engineers } = useEngineerList();
   const [previewTaskId, setPreviewTaskId] = useState<string | null>(null);
+  const [{ level }, setFilter] = useUrlFilters({ level: '' });
 
   if (isLoading) return <TablePageSkeleton cols={5} hasAction={false} />;
   if (error)     return <ErrorState error={error} onRetry={refetch} />;
 
-  const eng       = engineers ?? [];
-  const overdue   = escalations?.filter((e) => e.level === 'Overdue')  ?? [];
-  const tMinus1   = escalations?.filter((e) => e.level === 'TMinus1')  ?? [];
-  const tMinus3   = escalations?.filter((e) => e.level === 'TMinus3')  ?? [];
+  const eng    = engineers ?? [];
+  const groups = GROUPS.map((g) => ({ ...g, items: escalations?.filter((e) => e.level === g.level) ?? [] }));
+  // A filter naming an empty group (a stale link, or its last task was just resolved) shows everything instead of nothing.
+  const active  = groups.find((g) => g.param === level && g.items.length > 0);
+  const visible = active ? [active] : groups;
 
   return (
     <div className="max-w-6xl">
@@ -136,27 +147,32 @@ export default function EscalationsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          <EscalationGroup
-            label="Overdue"
-            icon={<AlertCircle className="h-4 w-4 text-red-500" />}
-            items={overdue}
-            engineers={eng}
-            onOpenTask={setPreviewTaskId}
-          />
-          <EscalationGroup
-            label="Due tomorrow"
-            icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
-            items={tMinus1}
-            engineers={eng}
-            onOpenTask={setPreviewTaskId}
-          />
-          <EscalationGroup
-            label="Due in 3 days"
-            icon={<Clock className="h-4 w-4 text-yellow-500" />}
-            items={tMinus3}
-            engineers={eng}
-            onOpenTask={setPreviewTaskId}
-          />
+          {/* The counts double as the filter: pressing one shows only that group, pressing it again shows them all. */}
+          <div className={STAT_GRID} role="group" aria-label="Filter by urgency">
+            {groups.map((g) => (
+              <StatCard
+                key={g.level}
+                title={g.label}
+                value={g.items.length}
+                icon={<g.icon className={cn('h-4 w-4', g.items.length > 0 ? g.iconCls : 'text-muted-foreground')} />}
+                iconBg={g.items.length > 0 ? g.iconBg : undefined}
+                accent={g.items.length > 0 ? g.accent : undefined}
+                sub={g.items.length === 0 ? 'Nothing here' : active === g ? 'Showing only these' : undefined}
+                selected={active === g}
+                onClick={g.items.length > 0 ? () => setFilter('level', active === g ? '' : g.param) : undefined}
+              />
+            ))}
+          </div>
+          {visible.map((g) => (
+            <EscalationGroup
+              key={g.level}
+              label={g.label}
+              icon={<g.icon className={cn('h-4 w-4', g.iconCls)} />}
+              items={g.items}
+              engineers={eng}
+              onOpenTask={setPreviewTaskId}
+            />
+          ))}
         </div>
       )}
 

@@ -14,6 +14,10 @@ export interface StatCardProps {
   subTone?: 'good' | 'bad';
   accent?: 'red' | 'yellow';
   to?: string;
+  /** Makes the tile a toggle button — for a row of tiles that filter the list beneath them. Ignored when `to` is set. */
+  onClick?: () => void;
+  /** With `onClick`: whether this tile's filter is the one applied. */
+  selected?: boolean;
   /** Said on hover — what the number is measured on, when that doesn't fit in the tile. */
   hint?: string;
 }
@@ -22,7 +26,7 @@ export interface StatCardProps {
 export const STAT_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3';
 
 /** A headline number with its label, icon and an optional line of context — the one tile every summary row in Pulse uses. */
-export default function StatCard({ title, value, unit, icon, iconBg, sub, subTone, accent, to, hint }: StatCardProps) {
+export default function StatCard({ title, value, unit, icon, iconBg, sub, subTone, accent, to, onClick, selected, hint }: StatCardProps) {
   const content = (
     <CardContent className="flex h-full flex-col gap-1 p-4">
       {/* Title and icon share one line, the title taking whatever the icon leaves, so a long title is shortened with an ellipsis (and a tooltip)
@@ -61,8 +65,20 @@ export default function StatCard({ title, value, unit, icon, iconBg, sub, subTon
       'h-full transition-shadow hover:shadow-md',
       accent === 'red'    ? 'border-red-200 dark:border-red-900/40'    : '',
       accent === 'yellow' ? 'border-amber-200 dark:border-amber-900/40' : '',
+      selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
     )}>
-      {to ? <Link to={to} className="block h-full">{content}</Link> : content}
+      {to ? (
+        <Link to={to} className="block h-full">{content}</Link>
+      ) : onClick ? (
+        <button
+          type="button"
+          aria-pressed={!!selected}
+          onClick={onClick}
+          className="block h-full w-full rounded-[inherit] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {content}
+        </button>
+      ) : content}
     </Card>
   );
 }
