@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from './client';
-import type { NotificationDto, PagedResult, NotificationPreferenceDto } from '../types/api';
+import type { ChatChannel, NotificationDto, PagedResult, NotificationPreferenceDto, PersonalChatSettingsDto } from '../types/api';
 
 export const notificationKeys = {
   all:  ()               => ['notifications']          as const,
@@ -46,22 +46,43 @@ export function useNotificationPreferences() {
   });
 }
 
-/** Switches email on or off for one kind — optimistically, rolled back if the save fails. */
+/** Switches email and/or chat on or off for one kind — optimistically, rolled back if the save fails. */
 export function useUpdateNotificationPreference() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ kind, email }: { kind: string; email: boolean }) =>
-      client.put<NotificationPreferenceDto>(`/notifications/preferences/${encodeURIComponent(kind)}`, { email }).then((r) => r.data!),
-    onMutate: async ({ kind, email }) => {
+    mutationFn: ({ kind, ...change }: { kind: string; email?: boolean; chat?: boolean }) =>
+      client.put<NotificationPreferenceDto>(`/notifications/preferences/${encodeURIComponent(kind)}`, change).then((r) => r.data!),
+    onMutate: async ({ kind, ...change }) => {
       await qc.cancelQueries({ queryKey: notificationPreferenceKeys.all() });
       const previous = qc.getQueryData<NotificationPreferenceDto[]>(notificationPreferenceKeys.all());
       qc.setQueryData<NotificationPreferenceDto[]>(notificationPreferenceKeys.all(),
-        (prefs) => prefs?.map((p) => (p.kind === kind ? { ...p, email } : p)));
+        (prefs) => prefs?.map((p) => (p.kind === kind ? { ...p, ...change } : p)));
       return { previous };
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(notificationPreferenceKeys.all(), context.previous);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: notificationPreferenceKeys.all() }),
+  });
+}
+
+export const personalChatKeys = {
+  settings: () => ['notifications', 'chat'] as const,
+};
+
+/** Where the caller's notifications are also sent as personal chat messages, and what's available. */
+export function usePersonalChatSettings() {
+  return useQuery({
+    queryKey: personalChatKeys.settings(),
+    queryFn: () => client.get<PersonalChatSettingsDto>('/notifications/chat').then((r) => r.data!),
+  });
+}
+
+export function useUpdatePersonalChatChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (channel: ChatChannel) =>
+      client.put<PersonalChatSettingsDto>('/notifications/chat', { channel }).then((r) => r.data!),
+    onSuccess: (settings) => qc.setQueryData(personalChatKeys.settings(), settings),
   });
 }
