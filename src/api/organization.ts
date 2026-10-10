@@ -14,6 +14,13 @@ export const DEFAULT_ORGANIZATION_SLUG = 'default';
 /** That organization's seeded name — a placeholder until its head renames it. */
 export const DEFAULT_ORGANIZATION_NAME = 'Default organization';
 
+/** The name to show for an organization — null while the default organization still has its seeded placeholder name. */
+export function organizationDisplayName(organization: CurrentOrganizationDto | undefined): string | null {
+  if (!organization) return null;
+  const isPlaceholder = organization.slug === DEFAULT_ORGANIZATION_SLUG && organization.name === DEFAULT_ORGANIZATION_NAME;
+  return isPlaceholder ? null : organization.name;
+}
+
 /** The signed-in user's organization. It changes only when its head rebrands it, so it's cached for the session. */
 export function useCurrentOrganization(enabled = true) {
   return useQuery({
