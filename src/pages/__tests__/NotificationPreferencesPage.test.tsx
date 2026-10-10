@@ -111,4 +111,35 @@ describe('NotificationPreferencesPage', () => {
 
     await waitFor(() => expect(client.put).toHaveBeenCalledWith('/notifications/preferences/task_assigned', { chat: false }));
   });
+
+  // ── Summary and channel chips ──────────────────────────────────────────
+
+  it('says how many kinds are emailed, and keeps the count current as they change', async () => {
+    vi.mocked(client.put).mockReturnValueOnce(new Promise(() => {})); // never settles: the count moves on the click alone
+    renderWithProviders(<NotificationPreferencesPage />);
+
+    // Task assigned and the locked password reset are emailed; Mentioned is not. Chat is off, so it doesn't count.
+    expect(await screen.findByTestId('preferences-summary')).toHaveTextContent('2 of 3 notifications are also emailed to you.');
+
+    fireEvent.click(screen.getByLabelText('Email me: Task assigned'));
+
+    await waitFor(() => expect(screen.getByTestId('preferences-summary')).toHaveTextContent('1 of 3'));
+  });
+
+  it('counts a kind that is only messaged once a chat channel is chosen, and names the channel on its chip', async () => {
+    serve({ channel: 'google_chat', googleChatAvailable: true, googleChatLinked: true });
+    renderWithProviders(<NotificationPreferencesPage />);
+
+    // Mentioned has email off but chat on, so with a channel chosen all three reach the person outside the inbox.
+    expect(await screen.findByTestId('preferences-summary')).toHaveTextContent('3 of 3 notifications also reach you by email or Google Chat.');
+    expect(screen.getByLabelText('Message me: Mentioned').closest('label')).toHaveTextContent('Google Chat');
+  });
+
+  it('shows the inbox on every kind as a channel that is always on', async () => {
+    renderWithProviders(<NotificationPreferencesPage />);
+
+    await screen.findByText('Tasks');
+    expect(screen.getAllByText('Inbox')).toHaveLength(3);
+    expect(screen.queryByLabelText(/Message me/)).not.toBeInTheDocument();
+  });
 });
