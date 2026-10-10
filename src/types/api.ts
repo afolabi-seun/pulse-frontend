@@ -93,6 +93,21 @@ export interface NotificationPreferenceDto {
   email: boolean;
   /** A security notice: always emailed. */
   emailLocked: boolean;
+  /** Sent to the person's personal chat channel, if they chose one. */
+  chat: boolean;
+}
+
+export type ChatChannel = 'none' | 'slack' | 'google_chat';
+
+/** GET /notifications/chat — where the caller's notifications are also sent as personal chat messages. */
+export interface PersonalChatSettingsDto {
+  channel: ChatChannel;
+  /** The caller's organization has connected Slack. */
+  slackAvailable: boolean;
+  /** Google Chat is set up on this Pulse server. */
+  googleChatAvailable: boolean;
+  /** The caller has opened a direct message with Pulse in Google Chat. */
+  googleChatLinked: boolean;
 }
 
 export interface AppMetaDto {
