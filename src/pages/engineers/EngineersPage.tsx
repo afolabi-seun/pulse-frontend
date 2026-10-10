@@ -13,7 +13,8 @@ import Badge from '../../components/ui/Badge';
 import { CardListSkeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../../components/ui/ErrorState';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import StatCard, { STAT_GRID } from '../../components/ui/StatCard';
 import { cn } from '@/lib/utils';
 import { WorkloadFigures } from '../../components/workload/WorkloadFigures';
 import type { EngineerDto } from '../../types/api';
@@ -98,29 +99,6 @@ function EngineerCard({ engineer }: { engineer: EngineerDto }) {
   );
 }
 
-// ── Stats bar ─────────────────────────────────────────────────────────────────
-
-function StatCard({ icon: Icon, iconBg, iconCls, value, label, hint }: {
-  icon: React.ElementType; iconBg: string; iconCls: string;
-  value: string | number; label: string;
-  /** Said on hover — what the number is measured on. */
-  hint?: string;
-}) {
-  return (
-    <Card className="transition-shadow hover:shadow-md" title={hint}>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', iconBg)}>
-          <Icon className={cn('h-5 w-5', iconCls)} />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function EngineersPage() {
@@ -155,11 +133,33 @@ export default function EngineersPage() {
       <PageHeader title="Engineers" description="Workload at a glance" />
 
       {/* Stats — always the full department/org roster, independent of the grid's own filters */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard icon={UserCheck}      iconBg="bg-primary/10"                           iconCls="text-primary"                         value={stats.activeCount} label="Active engineers" />
-        <StatCard icon={AlertTriangle}  iconBg={stats.overworkedCount > 0 ? 'bg-red-50 dark:bg-red-950/40' : 'bg-muted'} iconCls={stats.overworkedCount > 0 ? 'text-red-500' : 'text-muted-foreground'} value={stats.overworkedCount}       label="Overworked" />
-        <StatCard icon={BarChart2}      iconBg="bg-violet-50 dark:bg-violet-950/40"      iconCls="text-violet-600 dark:text-violet-400" value={`${stats.avgUtilisation}%`}    label="Avg utilisation" hint="Points due this cycle ÷ baseline, averaged over active engineers" />
-        <StatCard icon={CheckSquare}    iconBg="bg-emerald-50 dark:bg-emerald-950/40"    iconCls="text-emerald-600 dark:text-emerald-400" value={stats.tasksInFlight}     label="Tasks in flight" />
+      <div className={cn('mb-6', STAT_GRID)}>
+        <StatCard
+          title="Active engineers"
+          value={stats.activeCount}
+          icon={<UserCheck className="h-4 w-4 text-primary" />}
+          iconBg="bg-primary/10"
+        />
+        <StatCard
+          title="Overworked"
+          value={stats.overworkedCount}
+          icon={<AlertTriangle className={cn('h-4 w-4', stats.overworkedCount > 0 ? 'text-red-500' : 'text-muted-foreground')} />}
+          iconBg={stats.overworkedCount > 0 ? 'bg-red-50 dark:bg-red-950/40' : undefined}
+          accent={stats.overworkedCount > 0 ? 'red' : undefined}
+        />
+        <StatCard
+          title="Avg utilisation"
+          value={`${stats.avgUtilisation}%`}
+          icon={<BarChart2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
+          iconBg="bg-violet-50 dark:bg-violet-950/40"
+          hint="Points due this cycle ÷ baseline, averaged over active engineers"
+        />
+        <StatCard
+          title="Tasks in flight"
+          value={stats.tasksInFlight}
+          icon={<CheckSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+          iconBg="bg-emerald-50 dark:bg-emerald-950/40"
+        />
       </div>
 
       {/* Filters */}
