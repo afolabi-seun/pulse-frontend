@@ -1,10 +1,11 @@
 import { toast } from 'sonner';
-import { useNotificationPreferences, useUpdateNotificationPreference } from '../api/notifications';
+import { useNotificationPreferences, usePersonalChatSettings, useUpdateNotificationPreference } from '../api/notifications';
 import PageHeader from '../components/layout/PageHeader';
 import ErrorState from '../components/ui/ErrorState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import PersonalChatCard from './PersonalChatCard';
 import type { NotificationPreferenceDto } from '../types/api';
 
 function groupByCategory(prefs: NotificationPreferenceDto[]) {
@@ -16,10 +17,12 @@ function groupByCategory(prefs: NotificationPreferenceDto[]) {
 export default function NotificationPreferencesPage() {
   const { data: prefs, isLoading, error, refetch } = useNotificationPreferences();
   const update = useUpdateNotificationPreference();
+  const { data: chat } = usePersonalChatSettings();
+  const chatOn = !!chat && chat.channel !== 'none';
 
-  function setEmail(pref: NotificationPreferenceDto, email: boolean) {
+  function change(pref: NotificationPreferenceDto, setting: { email?: boolean; chat?: boolean }) {
     update.mutate(
-      { kind: pref.kind, email },
+      { kind: pref.kind, ...setting },
       { onError: () => toast.error(`Could not update "${pref.label}".`) },
     );
   }
@@ -28,8 +31,10 @@ export default function NotificationPreferencesPage() {
     <div>
       <PageHeader
         title="Notification preferences"
-        description="Choose which notifications are also emailed to you. Every notification always appears in your Pulse inbox."
+        description="Choose which notifications are also emailed or messaged to you. Every notification always appears in your Pulse inbox."
       />
+
+      <PersonalChatCard />
 
       {error ? (
         <ErrorState onRetry={() => void refetch()} />
@@ -52,15 +57,27 @@ export default function NotificationPreferencesPage() {
                         <p className="text-sm font-medium">{pref.label}</p>
                         <p className="text-xs text-muted-foreground">{pref.description}</p>
                       </div>
-                      <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                        {pref.emailLocked ? 'Always emailed' : 'Email'}
-                        <Switch
-                          checked={pref.email}
-                          disabled={pref.emailLocked}
-                          aria-label={`Email me: ${pref.label}`}
-                          onChange={(e) => setEmail(pref, e.target.checked)}
-                        />
-                      </label>
+                      <div className="flex shrink-0 items-center gap-4">
+                        {chatOn && (
+                          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                            Chat
+                            <Switch
+                              checked={pref.chat}
+                              aria-label={`Message me: ${pref.label}`}
+                              onChange={(e) => change(pref, { chat: e.target.checked })}
+                            />
+                          </label>
+                        )}
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {pref.emailLocked ? 'Always emailed' : 'Email'}
+                          <Switch
+                            checked={pref.email}
+                            disabled={pref.emailLocked}
+                            aria-label={`Email me: ${pref.label}`}
+                            onChange={(e) => change(pref, { email: e.target.checked })}
+                          />
+                        </label>
+                      </div>
                     </li>
                   ))}
                 </ul>
