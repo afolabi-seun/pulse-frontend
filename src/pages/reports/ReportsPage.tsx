@@ -16,6 +16,7 @@ import { usePmoReport, downloadPmoCsv, downloadLeadershipPdf } from '../../api/r
 import TaskPreviewDrawer from '../../components/tasks/TaskPreviewDrawer';
 import PageHeader from '../../components/layout/PageHeader';
 import Badge from '../../components/ui/Badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../../components/ui/ErrorState';
 import HelpTooltip from '../../components/ui/HelpTooltip';
 import { EngineerUtilizationTable } from '../../components/reports/EngineerUtilizationTable';
@@ -205,7 +206,7 @@ export default function ReportsPage() {
               )}
             />
             {report.teams.length === 0 ? (
-              <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">No teams found.</CardContent></Card>
+              <Card><EmptyState size="sm" icon={Users} title="No teams found." /></Card>
             ) : (
               <div className="space-y-3">
                 {report.teams.map((team) => (
@@ -343,7 +344,7 @@ export default function ReportsPage() {
           <section>
             <SectionHeader icon={<TrendingUp className="h-3.5 w-3.5 text-primary" />} label="Sprint Delivery Rate" />
             {report.sprintVelocity.length === 0 ? (
-              <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">No completed sprints.</CardContent></Card>
+              <Card><EmptyState size="sm" icon={BarChart2} title="No completed sprints." description="Delivery rates appear here once a sprint is completed." /></Card>
             ) : (
               <div className="space-y-3">
                 {report.sprintVelocity.map((team) => (
@@ -406,7 +407,7 @@ export default function ReportsPage() {
               )}
             />
             {report.checkInCompliance.length === 0 ? (
-              <Card><CardContent className="p-4 text-center text-sm text-muted-foreground">No compliance data available.</CardContent></Card>
+              <Card><EmptyState size="sm" icon={CheckCircle2} title="No compliance data available." /></Card>
             ) : (
               <div className="space-y-3">
                 {report.checkInCompliance.map((team) => (

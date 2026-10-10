@@ -47,7 +47,7 @@ function MembersDrawer({ team, members, onClose }: {
         <SheetBody className="p-0">
           <div className="divide-y divide-border">
             {members.length === 0 ? (
-              <p className="px-5 py-10 text-center text-sm text-muted-foreground">No members assigned to this team.</p>
+              <EmptyState size="sm" icon={UsersRound} title="No members assigned to this team." description="Assign people to it from Admin > Users." />
             ) : (
               <>
                 {active.map((eng) => <MemberRow key={eng.id} engineer={eng} />)}

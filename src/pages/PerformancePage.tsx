@@ -8,7 +8,9 @@ import { useMyPerformance, useTeamPerformance, useProjectPerformance } from '../
 import { useEngineer, useEngineerThroughput } from '../api/engineers';
 import { useTeamList, useTeamThroughput } from '../api/teams';
 import { useProjectList } from '../api/projects';
+import { UsersRound } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Skeleton } from '../components/ui/skeleton';
@@ -249,13 +251,20 @@ function TeamPerformanceSection() {
         </div>
       </div>
       {!effectiveTeamId ? (
-        <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">{canPickAnyTeam ? 'Pick a team or department to see its performance.' : 'No team to show yet.'}</CardContent></Card>
+        <Card>
+          <EmptyState
+            size="sm"
+            icon={UsersRound}
+            title={canPickAnyTeam ? 'Pick a team or department to see its performance.' : 'No team to show yet.'}
+            description={canPickAnyTeam ? undefined : "You'll see your team's performance here once you're on one."}
+          />
+        </Card>
       ) : isLoading ? (
         <Skeleton className="h-24 w-full" />
       ) : error ? (
         <ErrorState error={error} />
       ) : (data?.length ?? 0) === 0 ? (
-        <Card><CardContent className="py-6 text-center text-sm text-muted-foreground">No engineers on this team.</CardContent></Card>
+        <Card><EmptyState size="sm" icon={UsersRound} title="No engineers on this team." /></Card>
       ) : (
         <div className="space-y-3">
           <Card>
