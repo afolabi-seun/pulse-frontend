@@ -23,6 +23,12 @@ vi.mock('../../api/reports', () => ({
   useOrgTrend:  () => ({ data: undefined, isLoading: false }),
 }));
 
+const mockOrganization = vi.hoisted(() => vi.fn());
+vi.mock('../../api/organization', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../api/organization')>()),
+  useCurrentOrganization: () => mockOrganization(),
+}));
+
 vi.mock('../../api/sprints', () => ({
   useSprintList: () => ({ data: undefined, isLoading: false }),
 }));
@@ -80,6 +86,7 @@ describe('DashboardPage', () => {
   beforeEach(() => {
     mockSignals.mockReturnValue({ data: null });
     mockPmoReport.mockReturnValue({ data: undefined, isLoading: false });
+    mockOrganization.mockReturnValue({ data: { id: 'o1', name: 'Acme Engineering', slug: 'acme', brandColor: null, logoVersion: null } });
     emptyHistory();
     localStorage.clear();
     mockUseAuth.mockReturnValue({
@@ -322,5 +329,63 @@ describe('DashboardPage', () => {
 
     expect(screen.getByText('8 / 20 pts')).toBeInTheDocument();
     expect(screen.queryByText(/due this cycle/)).not.toBeInTheDocument();
+  });
+
+  // ── Banner ─────────────────────────────────────────────────────────────
+
+  it("heads the page with the organization's name, the greeting and the user's own load", () => {
+    withEightActivePoints();
+
+    renderWithProviders(<DashboardPage />);
+
+    expect(screen.getByTestId('banner-organization')).toHaveTextContent('Acme Engineering');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Good (morning|afternoon|evening), Alice$/);
+    const headline = screen.getByTestId('banner-headline');
+    expect(headline).toHaveTextContent('Active workload');
+    expect(headline).toHaveTextContent('8 / 20');
+    expect(headline).toHaveTextContent('40% of your baseline');
+  });
+
+  it('leads the banner with what is due this cycle once the overwork signal reports it', () => {
+    withEightActivePoints();
+    mockSignals.mockReturnValue({
+      data: {
+        loadVsBaseline: { tripped: true, reason: 'x' }, concurrent: { tripped: false, reason: 'y' },
+        staleInProgress: { tripped: false, reason: 'z' }, isOverworked: true, hasActiveOverride: false,
+        workload: { activePoints: 8, cyclePoints: 17, cycleDays: 7, thresholdPoints: 26 },
+      },
+    });
+
+    renderWithProviders(<DashboardPage />);
+
+    const headline = screen.getByTestId('banner-headline');
+    expect(headline).toHaveTextContent('Due this cycle');
+    expect(headline).toHaveTextContent('17 / 20');
+    expect(headline).toHaveTextContent('85% of your baseline');
+  });
+
+  it("leads the banner with the week's delivery for a role with no workload of its own", () => {
+    mockPmoReport.mockReturnValue({ data: { ...orgReport, totalDeliveredPoints: 42, previousWeekPoints: 30 }, isLoading: false });
+    mockUseAuth.mockReturnValue({
+      currentUser: { id: 'ex-1', name: 'Olivia Exec', role: 'executive', permissions: [], capabilities: [] },
+      allow: vi.fn((capability: string) => capability === 'executive-read'),
+    });
+
+    renderWithProviders(<DashboardPage />);
+
+    const headline = screen.getByTestId('banner-headline');
+    expect(headline).toHaveTextContent('Delivered this week');
+    expect(headline).toHaveTextContent('42');
+    expect(headline).toHaveTextContent('+12 vs last week');
+    expect(screen.getByText("Here's your organization at a glance.")).toBeInTheDocument();
+  });
+
+  it('leaves the organization off the banner while it still has its placeholder name', () => {
+    mockOrganization.mockReturnValue({ data: { id: 'o0', name: 'Default organization', slug: 'default', brandColor: null, logoVersion: null } });
+
+    renderWithProviders(<DashboardPage />);
+
+    expect(screen.queryByTestId('banner-organization')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 });

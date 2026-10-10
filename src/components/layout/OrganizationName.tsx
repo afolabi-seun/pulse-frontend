@@ -1,4 +1,4 @@
-import { DEFAULT_ORGANIZATION_NAME, DEFAULT_ORGANIZATION_SLUG, useCurrentOrganization } from '../../api/organization';
+import { organizationDisplayName, useCurrentOrganization } from '../../api/organization';
 
 /**
  * The signed-in user's organization, shown under the product name. Renders nothing while loading, on
@@ -7,14 +7,12 @@ import { DEFAULT_ORGANIZATION_NAME, DEFAULT_ORGANIZATION_SLUG, useCurrentOrganiz
  */
 export default function OrganizationName({ className }: { className?: string }) {
   const { data: organization } = useCurrentOrganization();
-
-  // The default organization's seeded name is a placeholder; once its head renames it, it shows like any other.
-  const isPlaceholder = organization?.slug === DEFAULT_ORGANIZATION_SLUG && organization.name === DEFAULT_ORGANIZATION_NAME;
-  if (!organization || isPlaceholder) return null;
+  const name = organizationDisplayName(organization);
+  if (!name) return null;
 
   return (
-    <span className={className} title={organization.name} data-testid="organization-name">
-      {organization.name}
+    <span className={className} title={name} data-testid="organization-name">
+      {name}
     </span>
   );
 }
