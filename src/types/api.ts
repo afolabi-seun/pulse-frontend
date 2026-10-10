@@ -52,6 +52,10 @@ export interface CurrentOrganizationDto {
   id: string;
   name: string;
   slug: string;
+  /** #RRGGBB, or null for Pulse's own colour. */
+  brandColor: string | null;
+  /** Changes whenever the logo does; null when there's no logo. */
+  logoVersion: string | null;
 }
 
 /** GET /integrations/slack — the caller's organization's Slack connection. */

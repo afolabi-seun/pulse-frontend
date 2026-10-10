@@ -32,6 +32,14 @@ describe('OrganizationName', () => {
     expect(screen.queryByTestId('organization-name')).not.toBeInTheDocument();
   });
 
+  it('shows the default organization once its head has named it', async () => {
+    vi.mocked(client.get).mockResolvedValueOnce({ data: { id: 'o0', name: 'Acme Engineering', slug: 'default' } });
+
+    render(<OrganizationName />, { wrapper });
+
+    expect(await screen.findByText('Acme Engineering')).toBeInTheDocument();
+  });
+
   it('shows nothing if the organization cannot be loaded', async () => {
     vi.mocked(client.get).mockRejectedValueOnce(new Error('offline'));
 
