@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyBrandColor, hexToHslTriplet, isHexColor, readableForeground } from '../brandColor';
+import { accentColor, applyBrandColor, hexToHslTriplet, isHexColor, readableForeground } from '../brandColor';
 
 describe('brandColor', () => {
   it('accepts only # and six hex digits', () => {
@@ -43,5 +43,19 @@ describe('brandColor', () => {
     applyBrandColor('red; --primary: 0 0% 0%', el);
 
     expect(el.style.getPropertyValue('--primary')).toBe('');
+  });
+
+  it("gives charts the brand colour in the comma form Chart.js can parse, at any opacity", () => {
+    expect(accentColor('#2563EB')).toBe('hsla(221, 83%, 53%, 1)');
+    expect(accentColor('#2563EB', 0.4)).toBe('hsla(221, 83%, 53%, 0.4)');
+  });
+
+  it("gives charts the theme's own primary when the organization has no colour", () => {
+    document.documentElement.style.setProperty('--primary', '258 90% 66%');
+    expect(accentColor(null, 0.4)).toBe('hsla(258, 90%, 66%, 0.4)');
+    document.documentElement.style.removeProperty('--primary');
+
+    // Even with no stylesheet loaded, it's still a colour.
+    expect(accentColor(null)).toBe('hsla(258, 90%, 66%, 1)');
   });
 });

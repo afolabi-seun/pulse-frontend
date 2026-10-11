@@ -8,7 +8,7 @@ import DemoBanner from '../DemoBanner';
 import GuidedTour from '../GuidedTour';
 import Spinner from '../ui/Spinner';
 import { useSignalR } from '../../hooks/useSignalR';
-import { useApplyOrganizationBrand } from '../../api/organization';
+import { useApplyOrganizationBrand, useOrganizationLogo } from '../../api/organization';
 
 const EXACT_TITLES: Record<string, string> = {
   '/dashboard':                  'Dashboard',
@@ -47,6 +47,7 @@ function resolveTitle(pathname: string): string {
 export default function AppShell() {
   useSignalR();
   useApplyOrganizationBrand();
+  const logoUrl = useOrganizationLogo();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -97,9 +98,13 @@ export default function AppShell() {
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary">
-              <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="h-6 w-6 shrink-0 rounded-md object-contain" />
+            ) : (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary">
+                <AudioWaveform className="h-3.5 w-3.5 text-primary-foreground" data-testid="pulse-mark" />
+              </div>
+            )}
             <span className="text-sm font-bold tracking-tight">Pulse</span>
           </div>
           {/* The sidebar's search button is behind the menu on a phone, and there's no keyboard shortcut to fall back on. */}

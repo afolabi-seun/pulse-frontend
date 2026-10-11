@@ -1,3 +1,4 @@
+import { useAccentColor } from '../../api/organization';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -42,6 +43,7 @@ const CHART_OPTIONS = {
 };
 
 export default function EngineerDetailPage() {
+  const accent = useAccentColor();
   const { id } = useParams<{ id: string }>();
   const { allow } = useAuth();
 
@@ -102,7 +104,7 @@ export default function EngineerDetailPage() {
         type: 'bar' as const,
         label: 'Delivered',
         data: (throughput ?? []).map((w) => w.pointsDelivered),
-        backgroundColor: 'rgb(99, 102, 241)',
+        backgroundColor: accent(),
         borderRadius: 4,
       },
       ...(weeklyBaseline !== null ? [{

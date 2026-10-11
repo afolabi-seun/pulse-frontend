@@ -1,3 +1,4 @@
+import { useAccentColor } from '../api/organization';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -48,6 +49,7 @@ const CHART_OPTIONS = {
 interface CreateForm { name: string; description: string; ownerTeamId: string; code: string; }
 
 function ThroughputChart({ projectId }: { projectId: string }) {
+  const accent = useAccentColor();
   const { data, isLoading } = useProjectThroughput(projectId);
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (!data || data.length === 0) return <p className="py-3 text-center text-xs text-muted-foreground">No throughput data yet.</p>;
@@ -58,7 +60,7 @@ function ThroughputChart({ projectId }: { projectId: string }) {
   });
   const chartData = {
     labels,
-    datasets: [{ data: data.map((w) => w.pointsDelivered), backgroundColor: 'rgb(99, 102, 241)', borderRadius: 4 }],
+    datasets: [{ data: data.map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 }],
   };
   return <div className="h-32"><Bar data={chartData} options={CHART_OPTIONS} /></div>;
 }

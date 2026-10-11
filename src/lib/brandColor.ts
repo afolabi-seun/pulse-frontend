@@ -49,3 +49,14 @@ export function applyBrandColor(hex: string | null | undefined, target: HTMLElem
   target.style.setProperty('--ring', hsl);
   target.style.setProperty('--primary-foreground', readableForeground(hex));
 }
+
+/**
+ * The accent as a colour string a chart can use: the given brand colour, or the theme's own primary without one.
+ * Written as comma-separated hsla() because Chart.js parses colours itself and doesn't read the "H S% L% / a" form.
+ */
+export function accentColor(hex: string | null | undefined, alpha = 1): string {
+  const triplet = isHexColor(hex)
+    ? hexToHslTriplet(hex)
+    : getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '258 90% 66%';
+  return `hsla(${triplet.split(/\s+/).join(', ')}, ${alpha})`;
+}
