@@ -1,3 +1,4 @@
+import { useAccentColor } from '../../api/organization';
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -79,6 +80,7 @@ interface EpicForm { title: string; description: string; }
 interface WikiForm { title: string; content: string; restrictedToMembers: boolean; }
 
 export default function ProjectDetailPage() {
+  const accent = useAccentColor();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -370,7 +372,7 @@ export default function ProjectDetailPage() {
   });
   const chartData = {
     labels: chartLabels,
-    datasets: [{ data: (throughput ?? []).map((w) => w.pointsDelivered), backgroundColor: 'rgb(99, 102, 241)', borderRadius: 4 }],
+    datasets: [{ data: (throughput ?? []).map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 }],
   };
 
   return (
