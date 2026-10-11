@@ -1,3 +1,4 @@
+import { useAccentColor } from '../api/organization';
 import { useEffect, useState } from 'react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, BarController, LineElement, LineController, PointElement, Title, Tooltip, Legend,
@@ -122,6 +123,7 @@ function WeeklyVelocityChart({ data, isLoading, weeklyBaseline }: {
   /** Points per week the baseline expects (see weeklyBaselinePoints). */
   weeklyBaseline?: number;
 }) {
+  const accent = useAccentColor();
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (!data || data.length === 0) {
     return <p className="py-4 text-center text-xs text-muted-foreground">No completed tasks in the last 6 weeks yet.</p>;
@@ -134,7 +136,7 @@ function WeeklyVelocityChart({ data, isLoading, weeklyBaseline }: {
   const chartData = {
     labels,
     datasets: [
-      { type: 'bar' as const, label: 'Delivered', data: data.map((w) => w.pointsDelivered), backgroundColor: 'rgb(99, 102, 241)', borderRadius: 4 },
+      { type: 'bar' as const, label: 'Delivered', data: data.map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 },
       ...(weeklyBaseline
         ? [{
             type: 'line' as const,

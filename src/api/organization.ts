@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import client from './client';
-import { applyBrandColor } from '../lib/brandColor';
+import { accentColor, applyBrandColor } from '../lib/brandColor';
 import type { CurrentOrganizationDto } from '../types/api';
 
 export const organizationKeys = {
@@ -54,6 +54,16 @@ export function useApplyOrganizationBrand() {
     applyBrandColor(color);
     return () => applyBrandColor(null);
   }, [color]);
+}
+
+/**
+ * The organization's accent for charts, which draw on a canvas and so can't use the theme's CSS variables. Returns a
+ * function of opacity; it follows the organization's colour, so a chart redraws when the colour changes.
+ */
+export function useAccentColor() {
+  const { data: organization } = useCurrentOrganization();
+  const color = organization?.brandColor ?? null;
+  return (alpha?: number) => accentColor(color, alpha);
 }
 
 function useOrganizationMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<CurrentOrganizationDto>) {

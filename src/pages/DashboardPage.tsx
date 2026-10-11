@@ -1,3 +1,4 @@
+import { useAccentColor } from '../api/organization';
 import { dueThisCycleHelp } from '../components/workload/WorkloadFigures';
 import { useState } from 'react';
 import {
@@ -100,6 +101,7 @@ const STATUS_VARIANT: Record<TaskStatus, 'green' | 'red' | 'gray' | 'yellow'> = 
 };
 
 export default function DashboardPage() {
+  const accent = useAccentColor();
   const { currentUser, allow } = useAuth();
   const { isHeadOfPmo, isTeamLead, role } = useCurrentRole();
   const id          = currentUser!.id;
@@ -511,7 +513,7 @@ export default function DashboardPage() {
                                     // a full-saturation bar next to a partial week's total reads as a real
                                     // drop-off that isn't there yet.
                                     backgroundColor: deliveryTrend.map((p) =>
-                                      isCurrentWeek(p.weekOf) ? 'rgba(99, 102, 241, 0.4)' : 'rgb(99, 102, 241)'),
+                                      isCurrentWeek(p.weekOf) ? accent(0.4) : accent()),
                                     borderRadius: 4,
                                   }],
                                 }}
@@ -768,7 +770,7 @@ export default function DashboardPage() {
                                     labels: team.sprints.map((s) => s.sprintName),
                                     datasets: [{
                                       data: team.sprints.map((s) => s.deliveredPoints),
-                                      backgroundColor: 'rgb(99, 102, 241)',
+                                      backgroundColor: accent(),
                                       borderRadius: 4,
                                     }],
                                   }}
