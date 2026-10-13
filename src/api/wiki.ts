@@ -54,7 +54,7 @@ export function useWikiPage(projectId: string, pageId: string | null) {
 export function useCreateWikiPage(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { title: string; content: string; restrictedToMembers?: boolean }) =>
+    mutationFn: (data: { title: string; content: string; restrictedToMembers?: boolean; category?: string }) =>
       client.post<WikiPageDto>(`/projects/${projectId}/wiki`, data).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.list(projectId) });
@@ -69,7 +69,7 @@ export function useCreateWikiPage(projectId: string) {
 export function useUpdateWikiPage(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ pageId, ...data }: { pageId: string; title: string; content: string; restrictedToMembers?: boolean }) =>
+    mutationFn: ({ pageId, ...data }: { pageId: string; title: string; content: string; restrictedToMembers?: boolean; category?: string }) =>
       client.put<WikiPageDto>(`/projects/${projectId}/wiki/${pageId}`, data).then((r) => r.data),
     onSuccess: (page) => {
       qc.invalidateQueries({ queryKey: keys.list(projectId) });

@@ -12,12 +12,15 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pagination } from '../../components/ui/Pagination';
 import { cn } from '@/lib/utils';
+import WikiCategoryBadge from '../../components/wiki/WikiCategoryBadge';
+import { wikiCategory, groupByWikiCategory } from '../../lib/wikiCategories';
 import type { WikiIndexEntryDto } from '../../types/api';
 
 const PAGE_SIZE = 25;
 
 type SortKey = 'updated' | 'title' | 'project';
-type View = 'grouped' | 'list';
+// 'grouped' keeps its old name (it is what people have saved as their layout): pages grouped by project. 'type' groups by kind of page.
+type View = 'grouped' | 'type' | 'list';
 
 const touched = (e: WikiIndexEntryDto) => e.updatedAt ?? e.createdAt;
 
@@ -28,7 +31,10 @@ const SORTERS: Record<SortKey, (a: WikiIndexEntryDto, b: WikiIndexEntryDto) => n
 };
 
 const readView = (): View => {
-  try { return localStorage.getItem('wiki.view') === 'list' ? 'list' : 'grouped'; } catch { return 'grouped'; }
+  try {
+    const saved = localStorage.getItem('wiki.view');
+    return saved === 'list' || saved === 'type' ? saved : 'grouped';
+  } catch { return 'grouped'; }
 };
 
 export default function WikiIndexPage() {
@@ -36,6 +42,7 @@ export default function WikiIndexPage() {
   const { data, isLoading } = useAllWikiPages();
   const [query, setQuery] = useState('');
   const [projectId, setProjectId] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('updated');
   const [view, setViewState] = useState<View>(readView);
   // Project ids the reader has folded away; survives going to a page and coming back.
@@ -58,29 +65,40 @@ export default function WikiIndexPage() {
   const rows = useMemo(
     () => (data ?? [])
       .filter((e) => (!projectId || e.projectId === projectId)
+        && (!typeFilter || wikiCategory(e.category).value === typeFilter)
         && (!q || e.pageTitle.toLowerCase().includes(q) || e.projectName.toLowerCase().includes(q)))
       .sort(SORTERS[sortKey]),
-    [data, projectId, q, sortKey],
+    [data, projectId, typeFilter, q, sortKey],
   );
 
+  // Only the types somebody actually used are offered in the filter, with how many pages each holds.
+  const typesInUse = useMemo(() => groupByWikiCategory(data ?? [], (e) => e.category), [data]);
+
+  // One list of groups whichever way the pages are grouped: by project (alphabetical) or by type (in the types' own order, empty ones left out).
+  // `key` is what folding is remembered by, so a type can never collide with a project id.
   const groups = useMemo(() => {
-    const byProject = new Map<string, { projectId: string; projectName: string; entries: WikiIndexEntryDto[] }>();
+    if (view === 'type') {
+      return groupByWikiCategory(rows, (e) => e.category).map((g) => ({ key: `type:${g.category.value}`, label: g.category.label, entries: g.items }));
+    }
+    const byProject = new Map<string, { key: string; label: string; entries: WikiIndexEntryDto[] }>();
     rows.forEach((e) => {
-      const g = byProject.get(e.projectId) ?? { projectId: e.projectId, projectName: e.projectName, entries: [] };
+      const g = byProject.get(e.projectId) ?? { key: e.projectId, label: e.projectName, entries: [] };
       g.entries.push(e);
       byProject.set(e.projectId, g);
     });
-    return [...byProject.values()].sort((a, b) => a.projectName.localeCompare(b.projectName));
-  }, [rows]);
+    return [...byProject.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [rows, view]);
 
-  useEffect(() => setPageIndex(0), [q, projectId, sortKey, view]);
+  useEffect(() => setPageIndex(0), [q, projectId, typeFilter, sortKey, view]);
   const pageRows = rows.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
 
-  const grouped = view === 'grouped';
+  const grouped = view !== 'list';
+  // Grouped by type, each row still needs its project named; grouped by project, the heading already says it.
+  const showProjectColumn = view !== 'grouped';
   // A search is looking for something, so it never hides a match behind a folded project.
   const isOpen = (id: string) => !!q || !collapsed.includes(id);
   const toggle = (id: string) => setCollapsed((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
-  const allFolded = groups.length > 0 && groups.every((g) => collapsed.includes(g.projectId));
+  const allFolded = groups.length > 0 && groups.every((g) => collapsed.includes(g.key));
 
   const handleDownload = async (evt: React.MouseEvent, e: WikiIndexEntryDto) => {
     evt.stopPropagation();
@@ -110,7 +128,7 @@ export default function WikiIndexPage() {
   const pageRow = (e: WikiIndexEntryDto, showProject: boolean) => (
     <div
       key={e.pageId}
-      className={cn('flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 transition-colors hover:bg-muted/30', !showProject && 'pl-9')}
+      className={cn('flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 transition-colors hover:bg-muted/30', grouped && 'pl-9')}
       onClick={() => navigate(`/wiki/${e.projectId}/${e.pageId}`)}
     >
       {/* A long title wraps onto the next line rather than being cut off; the icon stays beside the first line. */}
@@ -119,6 +137,7 @@ export default function WikiIndexPage() {
         <span className={cn('min-w-0 break-words font-medium leading-snug text-foreground', q && e.pageTitle.toLowerCase().includes(q) && 'text-primary')}>
           {e.pageTitle}
         </span>
+        {view !== 'type' && <WikiCategoryBadge category={e.category} className="mt-0.5" />}
         {e.restrictedToMembers && (
           <span title="Project members only" className="mt-0.5 shrink-0 text-muted-foreground">
             <Lock className="h-3 w-3" aria-label="Project members only" />
@@ -169,8 +188,19 @@ export default function WikiIndexPage() {
           emptyLabel="No matching projects"
           options={[{ value: '', label: 'All projects' }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
         />
+        {/* Only offered when more than one kind of page exists; otherwise there is nothing to choose between. */}
+        {typesInUse.length > 1 && (
+          <SearchableSelect
+            className="w-44 [&_input]:h-9 [&_input]:text-sm"
+            value={typeFilter}
+            onChange={setTypeFilter}
+            placeholder="Type…"
+            emptyLabel="No matching types"
+            options={[{ value: '', label: 'All types' }, ...typesInUse.map((g) => ({ value: g.category.value, label: `${g.category.label} (${g.items.length})` }))]}
+          />
+        )}
         <div role="group" aria-label="Layout" className="flex overflow-hidden rounded-md border border-input text-xs">
-          {([['grouped', 'By project'], ['list', 'List']] as const).map(([v, label]) => (
+          {([['grouped', 'By project'], ['type', 'By type'], ['list', 'List']] as const).map(([v, label]) => (
             <button
               key={v}
               type="button"
@@ -187,12 +217,12 @@ export default function WikiIndexPage() {
 
       {!isLoading && (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{rows.length} page{rows.length === 1 ? '' : 's'}{grouped && groups.length > 0 ? ` in ${groups.length} project${groups.length === 1 ? '' : 's'}` : ''}</span>
+          <span>{rows.length} page{rows.length === 1 ? '' : 's'}{grouped && groups.length > 0 ? ` in ${groups.length} ${view === 'type' ? 'type' : 'project'}${groups.length === 1 ? '' : 's'}` : ''}</span>
           {grouped && groups.length > 1 && !q && (
             <button
               type="button"
               className="font-medium text-primary hover:underline"
-              onClick={() => setCollapsed(allFolded ? [] : groups.map((g) => g.projectId))}
+              onClick={() => setCollapsed(allFolded ? [] : groups.map((g) => g.key))}
             >
               {allFolded ? 'Unfold all' : 'Fold all'}
             </button>
@@ -215,9 +245,9 @@ export default function WikiIndexPage() {
           <EmptyState
             icon={Search}
             title="No pages match"
-            description="Try a different search term or project."
+            description="Try a different search term, project or type."
             action={
-              <button onClick={() => { setQuery(''); setProjectId(''); }} className="text-sm text-primary hover:underline">
+              <button onClick={() => { setQuery(''); setProjectId(''); setTypeFilter(''); }} className="text-sm text-primary hover:underline">
                 Clear filters
               </button>
             }
@@ -227,27 +257,27 @@ export default function WikiIndexPage() {
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-2">
             <SortButton label="Page" column="title" />
-            {!grouped && <SortButton label="Project" column="project" />}
+            {showProjectColumn && <SortButton label="Project" column="project" />}
             <SortButton label="Updated" column="updated" />
           </div>
           <div className="divide-y divide-border">
             {grouped
               ? groups.map((g) => {
-                  const open = isOpen(g.projectId);
+                  const open = isOpen(g.key);
                   return (
-                    <Fragment key={g.projectId}>
+                    <Fragment key={g.key}>
                       <button
                         type="button"
                         aria-expanded={open}
-                        aria-label={`${g.projectName}, ${g.entries.length} page${g.entries.length === 1 ? '' : 's'}`}
-                        onClick={() => toggle(g.projectId)}
+                        aria-label={`${g.label}, ${g.entries.length} page${g.entries.length === 1 ? '' : 's'}`}
+                        onClick={() => toggle(g.key)}
                         className="flex w-full items-center gap-2 bg-muted/40 px-4 py-1.5 text-left hover:bg-muted/60"
                       >
                         {open ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                        <span className="text-xs font-semibold uppercase tracking-wide text-foreground">{g.projectName}</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-foreground">{g.label}</span>
                         <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{g.entries.length}</span>
                       </button>
-                      {open && g.entries.map((e) => pageRow(e, false))}
+                      {open && g.entries.map((e) => pageRow(e, showProjectColumn))}
                     </Fragment>
                   );
                 })

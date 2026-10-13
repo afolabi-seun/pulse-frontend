@@ -934,6 +934,8 @@ export interface WikiPageSummaryDto {
   updatedAt: string | null;
   /** Readable only by the project's members (and Executive/HR/Accountant) rather than every signed-in user. */
   restrictedToMembers?: boolean;
+  /** What kind of page this is (see lib/wikiCategories); absent on a response from before types existed, which means "general". */
+  category?: string;
 }
 
 export interface WikiPageDto {
@@ -945,6 +947,7 @@ export interface WikiPageDto {
   createdAt: string;
   updatedAt: string | null;
   restrictedToMembers?: boolean;
+  category?: string;
 }
 
 export interface WikiPageRevisionDto {
@@ -968,6 +971,7 @@ export interface WikiIndexEntryDto {
   createdAt: string;
   updatedAt: string | null;
   restrictedToMembers?: boolean;
+  category?: string;
 }
 
 // ── PMO Reports ───────────────────────────────────────────────────────────────
