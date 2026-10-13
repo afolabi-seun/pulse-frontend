@@ -13,6 +13,7 @@ import ProjectTimeDetail from '../components/time/ProjectTimeDetail';
 import { cn } from '@/lib/utils';
 import { getWeekStart, parseDateOnly, toIsoDate } from '../lib/dates';
 import type { EngineerHoursDto } from '../types/api';
+import { sumHours, formatHours } from '../lib/hours';
 
 const ROSTER_CAP = 25;
 const MAX_RANGE_DAYS = 62; // matches the backend's own cap
@@ -110,7 +111,7 @@ export default function TimeSummaryPage() {
   const projects = data?.projects ?? [];
   const zeroHours = engineers.filter((e) => e.totalHours === 0);
   const displayRange = data ? `${formatLong(data.weekOf)} – ${formatLong(data.to)}` : '';
-  const dayTotal = (dateIso: string) => engineers.reduce((sum, e) => sum + hoursOn(e, dateIso), 0);
+  const dayTotal = (dateIso: string) => sumHours(engineers.map((e) => hoursOn(e, dateIso)));
   const shownEngineers = showAll ? engineers : engineers.slice(0, ROSTER_CAP);
 
   return (
@@ -270,7 +271,7 @@ export default function TimeSummaryPage() {
                     const weekend = d.getDay() === 0 || d.getDay() === 6;
                     return (
                       <td key={dateIso} className={cn('border border-border bg-muted/30 px-2 py-1.5 text-center font-semibold text-foreground', weekend && 'bg-muted/50')}>
-                        {dayTotal(dateIso)}h
+                        {formatHours(dayTotal(dateIso))}
                       </td>
                     );
                   })}
