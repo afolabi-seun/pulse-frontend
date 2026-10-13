@@ -48,6 +48,7 @@ const KIND_LABEL: Record<string, string> = {
   task_assigned:      'A task has been assigned to you',
   task_loaned:        'A task has been loaned to you from another department',
   task_recalled:      'A task loaned to you has been recalled',
+  executive_commented: 'An executive commented on your task',
 };
 
 export function useSignalR() {

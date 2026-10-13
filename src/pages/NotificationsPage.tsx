@@ -42,6 +42,7 @@ const KIND_ICON: Record<string, LucideIcon> = {
   task_loaned:         ArrowRight,
   task_recalled:       ArrowRight,
   mentioned:           AtSign,
+  executive_commented: MessageSquare,
   estimate_approval_requested: Shuffle,
   estimate_approval_escalated: Shuffle,
   estimate_approved:   CheckCircle2,
@@ -74,6 +75,7 @@ const KIND_ICON_BG: Record<string, string> = {
   task_loaned:         'bg-violet-50 dark:bg-violet-950/40',
   task_recalled:       'bg-amber-50 dark:bg-amber-950/40',
   mentioned:           'bg-indigo-50 dark:bg-indigo-950/40',
+  executive_commented: 'bg-indigo-50 dark:bg-indigo-950/40',
   estimate_approval_requested: 'bg-amber-50 dark:bg-amber-950/40',
   estimate_approval_escalated: 'bg-red-50 dark:bg-red-950/40',
   estimate_approved:   'bg-emerald-50 dark:bg-emerald-950/40',
@@ -106,6 +108,7 @@ const KIND_ICON_CLS: Record<string, string> = {
   task_loaned:         'text-violet-600 dark:text-violet-400',
   task_recalled:       'text-amber-500',
   mentioned:           'text-indigo-600 dark:text-indigo-400',
+  executive_commented: 'text-indigo-600 dark:text-indigo-400',
   estimate_approval_requested: 'text-amber-500',
   estimate_approval_escalated: 'text-red-500',
   estimate_approved:   'text-emerald-600 dark:text-emerald-400',
@@ -138,6 +141,7 @@ const KIND_TITLE: Record<string, string> = {
   task_loaned:         'Task loaned to you from another department',
   task_recalled:       'A task loaned to you was recalled',
   mentioned:           'You were mentioned',
+  executive_commented: 'An executive commented on your task',
   estimate_approval_requested: 'Estimate awaiting your approval',
   estimate_approval_escalated: 'Estimate approval overdue — needs your attention',
   estimate_approved:   'Your estimate was approved',
@@ -153,7 +157,7 @@ const KIND_TITLE: Record<string, string> = {
 const TASK_LINK_KINDS = new Set([
   'escalation_t1', 'escalation_t3', 'escalation_overdue', 'blocker_flagged',
   'qa_accepted', 'task_unblocked', 'task_assigned', 'qa_rejected', 'qa_unassigned', 'task_loaned', 'task_recalled',
-  'mentioned', 'qa_rejection_proposed', 'qa_rejection_responded', 'qa_rejection_withdrawn',
+  'mentioned', 'executive_commented', 'qa_rejection_proposed', 'qa_rejection_responded', 'qa_rejection_withdrawn',
   'estimate_approval_requested', 'estimate_approval_escalated', 'estimate_approved', 'estimate_rejected',
   'pr_approval_requested', 'pr_approval_approved', 'pr_approval_rejected', 'pr_approval_reassigned',
 ]);
@@ -164,7 +168,7 @@ const ESCALATION_KINDS = new Set([
 
 const TASK_UPDATE_KINDS = new Set([
   'task_assigned', 'task_unblocked', 'qa_accepted', 'qa_rejected', 'qa_unassigned', 'task_loaned', 'task_recalled',
-  'mentioned', 'qa_rejection_proposed', 'qa_rejection_responded', 'qa_rejection_withdrawn',
+  'mentioned', 'executive_commented', 'qa_rejection_proposed', 'qa_rejection_responded', 'qa_rejection_withdrawn',
   'estimate_approval_requested', 'estimate_approval_escalated', 'estimate_approved', 'estimate_rejected',
   'pr_approval_requested', 'pr_approval_approved', 'pr_approval_rejected', 'pr_approval_reassigned',
 ]);
@@ -236,7 +240,8 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
   const isQaRej     = n.kind === 'qa_rejected' || n.kind === 'estimate_rejected';
   const isLoaned    = n.kind === 'task_loaned';
   const isBlocked   = n.kind === 'blocker_flagged';
-  const isMentioned = n.kind === 'mentioned';
+  // An executive's comment shows the same quoted excerpt, with their name, as an @mention does.
+  const isMentioned = n.kind === 'mentioned' || n.kind === 'executive_commented';
   const isFeedbackReply = n.kind === 'feedback_replied';
   const isEstimateEscalated = n.kind === 'estimate_approval_escalated';
 
