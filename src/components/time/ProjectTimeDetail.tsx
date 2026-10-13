@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { cn } from '@/lib/utils';
 import { formatDate } from '../../lib/dates';
 import type { ProjectActivityItemDto, ProjectHoursDto } from '../../types/api';
+import { round2 } from '../../lib/hours';
 
 const STATUS: Record<string, { label: string; variant: 'green' | 'red' | 'gray' | 'yellow' | 'blue' }> = {
   backlog: { label: 'Backlog', variant: 'gray' },
@@ -17,7 +18,6 @@ const STATUS: Record<string, { label: string; variant: 'green' | 'red' | 'gray' 
 };
 
 const MAX_ROWS = 50;
-const round2 = (n: number) => Math.round(n * 100) / 100;
 const TABLE_CLS = '[&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-2 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide';
 
 function Tab({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {

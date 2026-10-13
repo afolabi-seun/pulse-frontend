@@ -6,6 +6,7 @@ import Badge from '../ui/Badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import type { ActivityTaskDto } from '../../types/api';
+import { round2, sumHours, formatHours } from '../../lib/hours';
 
 const CATEGORY_LABEL: Record<string, string> = {
   meeting: 'Meetings', admin: 'Admin', leave: 'Leave', other: 'Other',
@@ -20,7 +21,6 @@ const STATUS: Record<string, { label: string; variant: 'green' | 'red' | 'gray' 
   done:    { label: 'Done',    variant: 'gray' },
 };
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
 const shortDay = (iso: string) =>
   parseDateOnly(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const dueLabel = (iso: string) =>
@@ -99,7 +99,7 @@ function DueCell({ task }: { task: ActivityTaskDto }) {
 
 /** Every task with hours in the period — what adds up to the engineer's total. */
 function LoggedTable({ rows }: { rows: Row[] }) {
-  const total = round2(rows.reduce((sum, t) => sum + t.hours, 0));
+  const total = sumHours(rows.map((t) => t.hours));
   return (
     <Table className={TABLE_CLS}>
       <TableHeader>
@@ -220,8 +220,8 @@ export default function EngineerTimeDetail({ engineerId, from, to }: { engineerI
   if (loggedRows.length === 0 && notLogged.length === 0 && otherTime.length === 0)
     return <p className="px-4 py-3 text-xs text-muted-foreground">Nothing assigned and no entries in this period.</p>;
 
-  const taskHours = round2(loggedRows.reduce((sum, t) => sum + t.hours, 0));
-  const otherHours = round2(otherTime.reduce((sum, c) => sum + c.hours, 0));
+  const taskHours = sumHours(loggedRows.map((t) => t.hours));
+  const otherHours = sumHours(otherTime.map((c) => c.hours));
   const hasLogged = loggedRows.length > 0 || otherTime.length > 0;
   // Open on what adds up to the total; fall back to the gaps if nothing was logged at all.
   const active = tab ?? (hasLogged ? 'logged' : 'notLogged');
@@ -231,7 +231,7 @@ export default function EngineerTimeDetail({ engineerId, from, to }: { engineerI
       <div className="flex flex-wrap items-center gap-2">
         <div role="tablist" aria-label="Time detail" className="flex gap-2">
           <Tab selected={active === 'logged'} onClick={() => setTab('logged')}>
-            Logged time · {round2(taskHours + otherHours)}h
+            Logged time · {formatHours(sumHours([taskHours, otherHours]))}
           </Tab>
           <Tab selected={active === 'notLogged'} onClick={() => setTab('notLogged')}>
             Assigned, not logged · {notLogged.length}
