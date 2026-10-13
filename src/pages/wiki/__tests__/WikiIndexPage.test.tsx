@@ -150,4 +150,56 @@ describe('WikiIndexPage', () => {
     expect(title.className).toContain('break-words');
     expect(title.className).not.toContain('truncate');
   });
+
+  // ── Page types ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  const typed = () => [
+    entry({ pageId: 't1', pageTitle: 'Service map', projectId: 'a', projectName: 'Alpha', category: 'architecture' }),
+    entry({ pageId: 't2', pageTitle: 'Local setup', projectId: 'b', projectName: 'Beta', category: 'development' }),
+    entry({ pageId: 't3', pageTitle: 'Release plan', projectId: 'a', projectName: 'Alpha', category: 'pmo' }),
+    entry({ pageId: 't4', pageTitle: 'Old notes', projectId: 'b', projectName: 'Beta' }),   // no type: General
+  ];
+
+  it('groups by type in the types\' own order, with General last, naming each page\'s project', () => {
+    pages = typed();
+    localStorage.setItem('wiki.view', 'type');
+    renderWithProviders(<WikiIndexPage />);
+
+    const headings = screen.getAllByRole('button', { name: /\d pages?$/ }).map((b) => b.getAttribute('aria-label'));
+    expect(headings).toEqual(['Development, 1 page', 'Architecture, 1 page', 'PMO, 1 page', 'General, 1 page']);
+    expect(screen.getByText('Local setup')).toBeInTheDocument();
+    // Grouped by type, the project is a column on each row (the heading no longer says it).
+    const row = screen.getByText('Local setup').closest('div.cursor-pointer')! as HTMLElement;
+    expect(within(row).getByText('Beta')).toBeInTheDocument();
+  });
+
+  it('shows a type badge on each page when grouped by project, and treats a page with no type as General', () => {
+    pages = typed();
+    renderWithProviders(<WikiIndexPage />);
+
+    const old = screen.getByText('Old notes').closest('div.cursor-pointer')! as HTMLElement;
+    expect(within(old).getByText('General')).toBeInTheDocument();
+    expect(within(screen.getByText('Service map').closest('div.cursor-pointer')! as HTMLElement).getByText('Architecture')).toBeInTheDocument();
+  });
+
+  it('filters by type', () => {
+    pages = typed();
+    listView();
+    renderWithProviders(<WikiIndexPage />);
+
+    const typeFilter = screen.getByPlaceholderText('Type…');
+    fireEvent.focus(typeFilter);
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Architecture (1)' }));
+
+    expect(screen.getByText('Service map')).toBeInTheDocument();
+    expect(screen.queryByText('Local setup')).not.toBeInTheDocument();
+    expect(screen.queryByText('Old notes')).not.toBeInTheDocument();
+  });
+
+  it('does not offer a type filter when every page is the same type', () => {
+    pages = [entry({ pageId: 'g1', pageTitle: 'Only one kind', projectId: 'a', projectName: 'Alpha' })];
+    renderWithProviders(<WikiIndexPage />);
+
+    expect(screen.queryByPlaceholderText('Type…')).not.toBeInTheDocument();
+  });
 });

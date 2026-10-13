@@ -1,5 +1,5 @@
 import { useAccentColor } from '../../api/organization';
-import { useState, useRef, useEffect } from 'react';
+import { Fragment, useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -8,6 +8,10 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import WikiContent from '../../components/wiki/WikiContent';
+import WikiCategoryBadge from '../../components/wiki/WikiCategoryBadge';
+import WikiImportButton from '../../components/wiki/WikiImportButton';
+import { WIKI_CATEGORIES, DEFAULT_WIKI_CATEGORY, wikiCategory, groupByWikiCategory } from '../../lib/wikiCategories';
+import type { ImportedDocument } from '../../lib/wordImport';
 import {
   Activity, BarChart2, BookOpen, Calendar, Check, CheckSquare, ChevronLeft, Download, Eye, EyeOff, FileJson, FolderOpen,
   Layers, Lock, Pencil, Plus, Search, Timer, Trash2, UserMinus, UserPlus, Users,
@@ -77,7 +81,7 @@ const CHART_OPTIONS = {
 type Tab = 'epics' | 'tasks' | 'throughput' | 'activity' | 'wiki';
 interface EditForm { name: string; description: string; ownerTeamId: string; code: string; }
 interface EpicForm { title: string; description: string; }
-interface WikiForm { title: string; content: string; restrictedToMembers: boolean; }
+interface WikiForm { title: string; content: string; restrictedToMembers: boolean; category: string; }
 
 export default function ProjectDetailPage() {
   const accent = useAccentColor();
@@ -122,6 +126,10 @@ export default function ProjectDetailPage() {
   const [downloadingListPageId, setDownloadingListPageId] = useState<string | null>(null);
   const [viewingRevisionId, setViewingRevisionId] = useState<string | null>(null);
   const [wikiPageIndex, setWikiPageIndex] = useState(0);
+  // Which type of page the list is narrowed to ('all' shows every group).
+  const [wikiTypeFilter, setWikiTypeFilter] = useState<string>('all');
+  // What the last import could not carry over (images, odd formatting); shown beside the editor until the page is saved or abandoned.
+  const [wikiImportWarnings, setWikiImportWarnings] = useState<string[]>([]);
   const [previewTaskId, setPreviewTaskId] = useState<string | null>(null);
   const [showBacklogOnly, setShowBacklogOnly] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'list' | 'board'>('list');
@@ -207,6 +215,13 @@ export default function ProjectDetailPage() {
   const updateWikiPage = useUpdateWikiPage(id!);
   const deleteWikiPage = useDeleteWikiPage(id!);
   const wikiForm = useForm<WikiForm>();
+
+  // The page list, grouped by type. A type nobody uses is not shown; the filter falls back to "all" if the type it names has no pages left.
+  const wikiGroups = groupByWikiCategory(wikiPages ?? [], (p) => p.category);
+  const activeWikiType = wikiGroups.some((g) => g.category.value === wikiTypeFilter) ? wikiTypeFilter : 'all';
+  const visibleWikiPages = (activeWikiType === 'all' ? wikiGroups : wikiGroups.filter((g) => g.category.value === activeWikiType)).flatMap((g) => g.items);
+  // Headings are only worth showing when there is more than one kind of page, or the only kind is a real type rather than the General default.
+  const showWikiHeadings = wikiGroups.length > 1 || (wikiGroups.length === 1 && wikiGroups[0].category.value !== DEFAULT_WIKI_CATEGORY);
 
   const { data: members } = useProjectMembers(id!);
   const addMember         = useAddProjectMember(id!);
@@ -318,11 +333,29 @@ export default function ProjectDetailPage() {
     deleteEpic.mutate(epic.id, { onSuccess: () => toast.success('Epic deleted.') });
   };
 
+  // Puts an imported document into the editor for review. Nothing is saved here: the author reads the preview, edits, and saves as usual.
+  const onWikiImported = async (doc: ImportedDocument) => {
+    const existing = (wikiForm.getValues('content') ?? '').trim();
+    if (existing && !await confirm({
+      title: 'Replace the content with the imported file?',
+      description: 'The text in the editor will be replaced. Nothing is saved until you click Save, and earlier versions stay in the page history.',
+      confirmLabel: 'Replace',
+      variant: 'default',
+    })) return;
+    wikiForm.setValue('content', doc.markdown, { shouldDirty: true });
+    // A new page takes its title from the file; an existing page keeps its own unless it has none.
+    if (!(wikiForm.getValues('title') ?? '').trim()) wikiForm.setValue('title', doc.title, { shouldDirty: true });
+    setWikiImportWarnings(doc.warnings);
+    setWikiEditorTab('preview');
+    toast.success(doc.source === 'word' ? 'Word document converted. Check the preview, then save.' : 'File loaded. Check the preview, then save.');
+  };
+
   const onCreateWikiPage = wikiForm.handleSubmit((values) => {
     createWikiPage.mutate(values, {
       onSuccess: (page) => {
         toast.success('Page created.');
         wikiForm.reset();
+        setWikiImportWarnings([]);
         setWikiMode('view');
         setSelectedPageId(page.id);
       },
@@ -333,7 +366,7 @@ export default function ProjectDetailPage() {
   const onUpdateWikiPage = wikiForm.handleSubmit((values) => {
     if (!selectedPageId) return;
     updateWikiPage.mutate({ pageId: selectedPageId, ...values }, {
-      onSuccess: () => { toast.success('Page saved.'); setWikiMode('view'); },
+      onSuccess: () => { toast.success('Page saved.'); setWikiImportWarnings([]); setWikiMode('view'); },
       onError: () => toast.error('Failed to save page.'),
     });
   });
@@ -1078,13 +1111,14 @@ export default function ProjectDetailPage() {
               </Button>
             )}
             {isPm && project.isActive && wikiMode === 'view' && !selectedPageId && (
-              <Button size="sm" onClick={() => { setWikiMode('create'); wikiForm.reset({ title: '', content: '', restrictedToMembers: false }); setWikiEditorTab('write'); }}>
+              <Button size="sm" onClick={() => { setWikiMode('create'); wikiForm.reset({ title: '', content: '', restrictedToMembers: false, category: DEFAULT_WIKI_CATEGORY }); setWikiImportWarnings([]); setWikiEditorTab('write'); }}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New page
               </Button>
             )}
             {isPm && project.isActive && wikiMode === 'view' && selectedPageId && wikiPage && (
               <Button size="sm" variant="ghost" onClick={() => {
-                wikiForm.reset({ title: wikiPage.title, content: wikiPage.content, restrictedToMembers: !!wikiPage.restrictedToMembers });
+                wikiForm.reset({ title: wikiPage.title, content: wikiPage.content, restrictedToMembers: !!wikiPage.restrictedToMembers, category: wikiPage.category ?? DEFAULT_WIKI_CATEGORY });
+                setWikiImportWarnings([]);
                 setWikiEditorTab('write');
                 setWikiMode('edit');
               }}>
@@ -1106,13 +1140,35 @@ export default function ProjectDetailPage() {
               </div>
               <form onSubmit={wikiMode === 'create' ? onCreateWikiPage : onUpdateWikiPage}>
                 <div className="space-y-3 px-5 py-4">
-                  <div className="space-y-1.5">
-                    <Label>Title <span className="text-destructive">*</span></Label>
-                    <Input {...wikiForm.register('title', { required: 'Title is required' })} placeholder="e.g. Architecture Overview" />
-                    {wikiForm.formState.errors.title && (
-                      <p className="text-xs text-destructive">{wikiForm.formState.errors.title.message}</p>
-                    )}
+                  <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
+                    <div className="space-y-1.5">
+                      <Label>Title <span className="text-destructive">*</span></Label>
+                      <Input {...wikiForm.register('title', { required: 'Title is required' })} placeholder="e.g. Architecture Overview" />
+                      {wikiForm.formState.errors.title && (
+                        <p className="text-xs text-destructive">{wikiForm.formState.errors.title.message}</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="wiki-category">Type</Label>
+                      <select
+                        id="wiki-category"
+                        {...wikiForm.register('category')}
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        {WIKI_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <p className="text-[11px] leading-snug text-muted-foreground">{wikiCategory(wikiForm.watch('category')).hint}</p>
+                    </div>
                   </div>
+                  <WikiImportButton onImported={onWikiImported} />
+                  {wikiImportWarnings.length > 0 && (
+                    <div role="status" className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-300">
+                      <p className="font-medium">Worth a look before you save</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        {wikiImportWarnings.map((w) => <li key={w}>{w}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label>Content</Label>
@@ -1161,7 +1217,7 @@ export default function ProjectDetailPage() {
                   <Button size="sm" type="submit" loading={createWikiPage.isPending || updateWikiPage.isPending}>
                     {wikiMode === 'create' ? 'Create page' : 'Save changes'}
                   </Button>
-                  <Button size="sm" variant="ghost" type="button" onClick={() => { setWikiMode('view'); wikiForm.reset(); }}>
+                  <Button size="sm" variant="ghost" type="button" onClick={() => { setWikiMode('view'); wikiForm.reset(); setWikiImportWarnings([]); }}>
                     Cancel
                   </Button>
                 </div>
@@ -1181,6 +1237,7 @@ export default function ProjectDetailPage() {
                     <p className="text-sm font-semibold text-foreground flex-1">
                       {viewingRevisionId && viewingRevision ? viewingRevision.title : wikiPage.title}
                     </p>
+                    <WikiCategoryBadge category={wikiPage.category} />
                     {viewingRevisionId ? (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                         Viewing old revision
@@ -1269,16 +1326,39 @@ export default function ProjectDetailPage() {
                   title="No wiki pages yet"
                   description="Document architecture decisions, onboarding guides, and project notes here."
                   action={isPm && project.isActive
-                    ? <Button size="sm" onClick={() => { setWikiMode('create'); wikiForm.reset({ title: '', content: '', restrictedToMembers: false }); setWikiEditorTab('write'); }}>Create first page</Button>
+                    ? <Button size="sm" onClick={() => { setWikiMode('create'); wikiForm.reset({ title: '', content: '', restrictedToMembers: false, category: DEFAULT_WIKI_CATEGORY }); setWikiImportWarnings([]); setWikiEditorTab('write'); }}>Create first page</Button>
                     : undefined}
                 />
               </Card>
             ) : (
               <>
+              {wikiGroups.length > 1 && (
+                <div role="group" aria-label="Filter pages by type" className="flex flex-wrap gap-1.5">
+                  {[{ value: 'all', label: 'All', count: wikiPages?.length ?? 0 }, ...wikiGroups.map((g) => ({ value: g.category.value, label: g.category.label, count: g.items.length }))].map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      aria-pressed={activeWikiType === f.value}
+                      onClick={() => { setWikiTypeFilter(f.value); setWikiPageIndex(0); }}
+                      className={cn(
+                        'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                        activeWikiType === f.value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-muted-foreground hover:bg-muted',
+                      )}
+                    >
+                      {f.label} <span className="opacity-70">{f.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <Card className="divide-y divide-border overflow-hidden p-0">
-                {(wikiPages ?? []).slice(wikiPageIndex * WIKI_PAGE_SIZE, (wikiPageIndex + 1) * WIKI_PAGE_SIZE).map((page) => (
+                {visibleWikiPages.slice(wikiPageIndex * WIKI_PAGE_SIZE, (wikiPageIndex + 1) * WIKI_PAGE_SIZE).map((page, i, slice) => (
+                  <Fragment key={page.id}>
+                  {showWikiHeadings && (i === 0 || wikiCategory(slice[i - 1].category).value !== wikiCategory(page.category).value) && (
+                    <div className="bg-muted/40 px-5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {wikiCategory(page.category).label}
+                    </div>
+                  )}
                   <div
-                    key={page.id}
                     className="flex cursor-pointer items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors"
                     onClick={() => { setSelectedPageId(page.id); setShowHistory(false); setViewingRevisionId(null); }}
                   >
@@ -1325,13 +1405,14 @@ export default function ProjectDetailPage() {
                       </button>
                     )}
                   </div>
+                  </Fragment>
                 ))}
               </Card>
-              {(wikiPages?.length ?? 0) > WIKI_PAGE_SIZE && (
+              {visibleWikiPages.length > WIKI_PAGE_SIZE && (
                 <Pagination
                   page={wikiPageIndex + 1}
                   hasPrev={wikiPageIndex > 0}
-                  hasMore={(wikiPageIndex + 1) * WIKI_PAGE_SIZE < (wikiPages?.length ?? 0)}
+                  hasMore={(wikiPageIndex + 1) * WIKI_PAGE_SIZE < visibleWikiPages.length}
                   onPrev={() => setWikiPageIndex((i) => i - 1)}
                   onNext={() => setWikiPageIndex((i) => i + 1)}
                 />
