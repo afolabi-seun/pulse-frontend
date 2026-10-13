@@ -21,6 +21,7 @@ import Button from '../components/ui/Button';
 import { FormPageSkeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import { ScrollFadeX } from '@/components/ui/scroll-fade';
+import { round2, sumHours, formatHours } from '../lib/hours';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -57,11 +58,13 @@ function GridCell({
 }: {
   entries: TimeEntryDto[];
   disabled: boolean;
-  onCommit: (value: string, existing: TimeEntryDto | undefined) => void;
+  /** Returns false when the typed value was refused, so the cell can show the saved value again. */
+  onCommit: (value: string, existing: TimeEntryDto | undefined) => boolean | void;
   onOpenBreakdown: () => void;
 }) {
   if (entries.length > 1) {
-    const total = entries.reduce((s, e) => s + e.hours, 0);
+    // Several sessions in one day: their sum, exact to two decimals (1.1 + 2.32 is 3.42, not 3.4200000000000004).
+    const total = sumHours(entries.map((e) => e.hours));
     return (
       <button
         type="button"
@@ -69,7 +72,7 @@ function GridCell({
         className="flex h-7 w-full items-center justify-center gap-1 rounded bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
         title={`${entries.length} sessions — click to view`}
       >
-        {total}h <Layers className="h-3 w-3" />
+        {formatHours(total)} <Layers className="h-3 w-3" />
       </button>
     );
   }
@@ -86,7 +89,12 @@ function GridCell({
         disabled={disabled}
         defaultValue={entry ? entry.hours : ''}
         placeholder="–"
-        onBlur={(e) => onCommit(e.target.value, entry)}
+        onBlur={(e) => {
+          const saved = entry ? String(entry.hours) : '';
+          // A half-typed or malformed number ("-", "1e") reads back as "" from a number input, which would otherwise be taken as "clear this entry".
+          if (e.target.validity.badInput) { e.target.value = saved; return; }
+          if (onCommit(e.target.value, entry) === false) e.target.value = saved;
+        }}
         onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
         className={cn(
           'h-7 w-full rounded border border-transparent bg-transparent text-center text-xs',
@@ -278,15 +286,12 @@ export default function MyTimePage() {
 
   const rows = useMemo(() => [...taskRows, ...categoryRows], [taskRows, categoryRows]);
 
-  // Timer-logged sessions carry arbitrary two-decimal hours (e.g. 0.06h), unlike the grid's own
-  // 0.25-step manual entries — summing those in plain floating point surfaces artifacts like
-  // 0.35000000000000003, so every total is rounded to 2dp at the source.
-  const round2 = (n: number) => Math.round(n * 100) / 100;
-  const rowTotal = (row: RowDef) =>
-    round2(days.reduce((sum, d) => sum + (entriesByCell.get(`${row.key}::${toIso(d)}`) ?? []).reduce((s, e) => s + e.hours, 0), 0));
-  const dayTotal = (dateIso: string) =>
-    round2(rows.reduce((sum, row) => sum + (entriesByCell.get(`${row.key}::${dateIso}`) ?? []).reduce((s, e) => s + e.hours, 0), 0));
-  const grandTotal = round2(rows.reduce((sum, row) => sum + rowTotal(row), 0));
+  // Sessions carry arbitrary two-decimal hours (a timer's 0.06h, a typed 1.1), and adding those as plain floats gives artifacts like 0.35000000000000003
+  // or 3.4200000000000004, so every total is added in whole hundredths (see lib/hours).
+  const cellHours = (key: string, dateIso: string) => (entriesByCell.get(`${key}::${dateIso}`) ?? []).map((e) => e.hours);
+  const rowTotal = (row: RowDef) => sumHours(days.flatMap((d) => cellHours(row.key, toIso(d))));
+  const dayTotal = (dateIso: string) => sumHours(rows.flatMap((row) => cellHours(row.key, dateIso)));
+  const grandTotal = sumHours(rows.map((row) => rowTotal(row)));
 
   const availableTasksToAdd = loggableTasks.filter((t) => !taskRowIds.includes(t.id));
 
@@ -294,7 +299,15 @@ export default function MyTimePage() {
     // Rounded to the DB column's own 2dp precision — an unrounded value (a paste, a spinner nudge
     // off an already-imprecise decimal) would otherwise reach the API as-is, unlike the timer path,
     // which already rounds to 2dp before logging (see StartTimerHandler/StopTimerHandler).
-    const hours = valueStr.trim() === '' ? null : round2(Number(valueStr));
+    let hours: number | null = null;
+    if (valueStr.trim() !== '') {
+      const typed = Number(valueStr);
+      // Refused, not guessed at: a non-number would otherwise become 0 and delete the entry, and a negative or over-long value would reach the server.
+      if (!Number.isFinite(typed)) { toast.error('Enter hours as a number, for example 1.5.'); return false; }
+      if (typed < 0) { toast.error('Hours cannot be negative.'); return false; }
+      hours = round2(typed);
+      if (hours > 24) { toast.error('A single entry cannot be more than 24 hours.'); return false; }
+    }
 
     if (!existing) {
       if (hours && hours > 0) {
