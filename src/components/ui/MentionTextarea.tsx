@@ -121,7 +121,9 @@ const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
         />
         {showSuggestions && rect && createPortal(
           <div
-            style={{ position: 'fixed', top: rect.top, left: rect.left }}
+            // pointerEvents: a modal Dialog/Sheet (the task preview drawer) switches off pointer events on <body> and everything portaled to it, so
+            // without this the names could be picked with the keyboard but not clicked. SearchableSelect's menu does the same.
+            style={{ position: 'fixed', top: rect.top, left: rect.left, pointerEvents: 'auto' }}
             className="z-50 w-56 overflow-hidden rounded-md border border-border bg-popover shadow-md"
           >
             {suggestions.map((s, i) => (
