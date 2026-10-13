@@ -26,4 +26,25 @@ describe('MentionTextarea', () => {
     expect(screen.getByText('Oluwaseun Afolabi')).toBeInTheDocument();
     expect(screen.getByText('Oluwakemi Rokosu')).toBeInTheDocument();
   });
+
+  it('inserts the name when a suggestion is clicked, not just when it is chosen with the keyboard', () => {
+    renderWithProviders(<Wrapper />);
+    const box = screen.getByRole('textbox');
+    fireEvent.change(box, { target: { value: 'cc @olu' } });
+
+    fireEvent.mouseDown(screen.getByText('Oluwakemi Rokosu'));
+
+    expect(box).toHaveValue('cc @Oluwakemi Rokosu ');
+    expect(screen.queryByText('Oluwaseun Afolabi')).not.toBeInTheDocument();
+  });
+
+  it('keeps the suggestion list clickable inside a modal drawer', () => {
+    // A modal Dialog/Sheet (the task preview drawer) sets pointer-events: none on <body> and on everything portaled to it, so the list has to
+    // opt back in or its names can only be picked with the keyboard. jsdom cannot reproduce the modal itself, so this pins the opt-in.
+    renderWithProviders(<Wrapper />);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '@olu' } });
+
+    const list = screen.getByText('Oluwaseun Afolabi').closest('div');
+    expect(list).toHaveStyle({ pointerEvents: 'auto' });
+  });
 });
