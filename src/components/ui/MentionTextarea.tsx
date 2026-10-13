@@ -20,8 +20,25 @@ interface MentionTextareaProps extends Omit<TextareaProps, 'value' | 'onChange'>
 }
 
 /** Matches an in-progress "@partial name" right before the caret — "@" must start the text or
- * follow whitespace, so an email address or a mid-word "@" doesn't trigger the dropdown. */
-const MENTION_PATTERN = /(?:^|\s)@([a-zA-Z][\w'-]*(?: [a-zA-Z][\w'-]*)*)$/;
+ * follow whitespace, so an email address or a mid-word "@" doesn't trigger the dropdown. The name
+ * part is optional: a bare "@" opens the list with everyone, and it narrows as you type. */
+const MENTION_PATTERN = /(?:^|\s)@([a-zA-Z][\w'-]*(?: [a-zA-Z][\w'-]*)*)?$/;
+
+/** How many names the list can hold before it stops growing (it scrolls well before this). Keeps a very
+ * large organization from rendering hundreds of rows for a bare "@"; typing narrows it long before that matters. */
+const MAX_SUGGESTIONS = 50;
+
+/** Lower is a better match: a name starting with what was typed, then a name with a WORD starting with it
+ * ("ke" -> Kemi Rokosu before Nike Adelakun, where "ke" is only buried inside "Nike"), then any other
+ * containing it. -1 when it doesn't match at all. An empty query matches everyone equally. */
+function matchRank(name: string, query: string): number {
+  const q = query.trim().toLowerCase();
+  if (q === '') return 0;
+  const n = name.toLowerCase();
+  if (n.startsWith(q)) return 0;
+  if (n.split(/[\s'-]+/).some((word) => word.startsWith(q))) return 1;
+  return n.includes(q) ? 2 : -1;
+}
 
 const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
   ({ value, onChange, engineers, className, onKeyDown, onBlur, ...props }, forwardedRef) => {
@@ -40,8 +57,11 @@ const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
 
     const suggestions = query !== null
       ? (engineers ?? [])
-          .filter((e) => e.name.toLowerCase().includes(query.toLowerCase()))
-          .slice(0, 6)
+          .map((e, order) => ({ e, order, rank: matchRank(e.name, query) }))
+          .filter((x) => x.rank >= 0)
+          .sort((a, b) => a.rank - b.rank || a.order - b.order)
+          .slice(0, MAX_SUGGESTIONS)
+          .map((x) => x.e)
       : [];
     const showSuggestions = query !== null && suggestions.length > 0;
 
@@ -64,11 +84,19 @@ const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
       };
     }, [showSuggestions]);
 
+    // Arrowing down a long list must keep the highlighted name in view.
+    const listRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+      if (!showSuggestions) return;
+      (listRef.current?.children[highlighted] as HTMLElement | undefined)?.scrollIntoView?.({ block: 'nearest' });
+    }, [highlighted, showSuggestions]);
+
     const detectMention = (text: string, caret: number) => {
       const match = MENTION_PATTERN.exec(text.slice(0, caret));
       if (match) {
-        setQuery(match[1]);
-        setMentionStart(caret - match[1].length - 1);
+        const typed = match[1] ?? '';
+        setQuery(typed);
+        setMentionStart(caret - typed.length - 1);
         setHighlighted(0);
       } else {
         setQuery(null);
@@ -121,10 +149,11 @@ const MentionTextarea = forwardRef<HTMLTextAreaElement, MentionTextareaProps>(
         />
         {showSuggestions && rect && createPortal(
           <div
+            ref={listRef}
             // pointerEvents: a modal Dialog/Sheet (the task preview drawer) switches off pointer events on <body> and everything portaled to it, so
             // without this the names could be picked with the keyboard but not clicked. SearchableSelect's menu does the same.
             style={{ position: 'fixed', top: rect.top, left: rect.left, pointerEvents: 'auto' }}
-            className="z-50 w-56 overflow-hidden rounded-md border border-border bg-popover shadow-md"
+            className="z-50 max-h-56 w-56 overflow-y-auto rounded-md border border-border bg-popover shadow-md"
           >
             {suggestions.map((s, i) => (
               <button
