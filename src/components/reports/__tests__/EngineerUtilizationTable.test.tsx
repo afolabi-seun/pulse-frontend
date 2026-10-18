@@ -44,7 +44,20 @@ describe('EngineerUtilizationTable', () => {
       entry({ engineerId: 'b', name: 'No QA' }),
     ]} />);
     expect(within(screen.getByText('Has QA').closest('tr')!).getByText('2 (10 pts)')).toBeInTheDocument();
-    expect(within(screen.getByText('No QA').closest('tr')!).getByText('—')).toBeInTheDocument();
+    expect(within(screen.getByText('No QA').closest('tr')!).queryByText(/\(\d+ pts\)/)).not.toBeInTheDocument();
+  });
+
+  it('shows how many tasks are paused and how many have no estimate, or a dash when none', () => {
+    render(<EngineerUtilizationTable engineers={[
+      entry({ engineerId: 'a', name: 'Has some', pausedTasks: 3, unestimatedBacklogTasks: 5 }),
+      entry({ engineerId: 'b', name: 'Has none', pausedTasks: 0, unestimatedBacklogTasks: 0 }),
+    ]} />);
+    const cells = (name: string) => Array.from(screen.getByText(name).closest('tr')!.querySelectorAll('td')).map((td) => td.textContent);
+
+    expect(screen.getByText('Paused')).toBeInTheDocument();
+    expect(screen.getByText('No estimate')).toBeInTheDocument();
+    expect(cells('Has some')).toEqual(expect.arrayContaining(['3', '5']));
+    expect(cells('Has none').filter((c) => c === '—').length).toBeGreaterThanOrEqual(2);
   });
 
   it('flags an overworked engineer', () => {
