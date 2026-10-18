@@ -35,7 +35,7 @@ export function useTeamThroughput(id: string) {
 export function useCreateTeam() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; teamLeadId?: string; department?: string }) =>
+    mutationFn: (body: { name: string; teamLeadId?: string; department?: string; headId?: string }) =>
       client.post<TeamDto>('/teams', body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: teamKeys.all() }),
   });
@@ -44,7 +44,7 @@ export function useCreateTeam() {
 export function useUpdateTeam(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; teamLeadId?: string; clearTeamLead?: boolean; deactivate?: boolean; department?: string; clearDepartment?: boolean }) =>
+    mutationFn: (body: { name?: string; teamLeadId?: string; clearTeamLead?: boolean; deactivate?: boolean; department?: string; clearDepartment?: boolean; headId?: string; clearHead?: boolean }) =>
       client.patch<TeamDto>(`/teams/${id}`, body).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: teamKeys.detail(id) });
