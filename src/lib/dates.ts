@@ -56,6 +56,17 @@ export function parseDueDateEndOfDay(s: string | null): Date | null {
   return new Date(s + 'T23:59:59Z');
 }
 
+// How far away a due date really is, in words ("today", "tomorrow", "in 2 days", "yesterday", "3 days ago"). Null when there is no due date. The
+// backend words its due-date emails the same way (DueDateWording), so a task never claims a day count it does not have.
+export function dueWording(iso: string | null): string | null {
+  const days = daysUntil(iso);
+  if (days === null) return null;
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days === -1) return 'yesterday';
+  return days > 1 ? `in ${days} days` : `${-days} days ago`;
+}
+
 // Days from today until the given ISO date string (negative = past). Null when no due date.
 export function daysUntil(iso: string | null): number | null {
   if (!iso) return null;

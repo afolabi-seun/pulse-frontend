@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { daysLate, toIsoDate, getWeekStart, isCurrentWeek } from '../dates';
+import { daysLate, toIsoDate, getWeekStart, isCurrentWeek, dueWording } from '../dates';
 
 function isoDaysFromToday(offset: number): string {
   const d = new Date();
@@ -108,5 +108,20 @@ describe('isCurrentWeek', () => {
   it('is false for next week', () => {
     const nextWeek = getWeekStart(isoDaysFromToday(7));
     expect(isCurrentWeek(nextWeek)).toBe(false);
+  });
+});
+
+describe('dueWording', () => {
+  it('describes the real distance to a due date', () => {
+    expect(dueWording(isoDaysFromToday(0))).toBe('today');
+    expect(dueWording(isoDaysFromToday(1))).toBe('tomorrow');
+    expect(dueWording(isoDaysFromToday(2))).toBe('in 2 days');
+    expect(dueWording(isoDaysFromToday(10))).toBe('in 10 days');
+    expect(dueWording(isoDaysFromToday(-1))).toBe('yesterday');
+    expect(dueWording(isoDaysFromToday(-3))).toBe('3 days ago');
+  });
+
+  it('is null when there is no due date', () => {
+    expect(dueWording(null)).toBeNull();
   });
 });

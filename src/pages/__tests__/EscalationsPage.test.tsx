@@ -24,8 +24,8 @@ describe('EscalationsPage', () => {
     renderWithProviders(<EscalationsPage />);
 
     expect(filters().getByRole('button', { name: /Overdue/ })).toHaveTextContent('2');
-    expect(filters().getByRole('button', { name: /Due tomorrow/ })).toHaveTextContent('1');
-    expect(filters().getByRole('button', { name: /Due in 3 days/ })).toHaveTextContent('1');
+    expect(filters().getByRole('button', { name: /Due within 1 day/ })).toHaveTextContent('1');
+    expect(filters().getByRole('button', { name: /Due within 3 days/ })).toHaveTextContent('1');
     ['Task a', 'Task b', 'Task c', 'Task d'].forEach((t) => expect(screen.getByText(t)).toBeInTheDocument());
   });
 
@@ -50,7 +50,7 @@ describe('EscalationsPage', () => {
     renderWithProviders(<EscalationsPage />);
 
     fireEvent.click(filters().getByRole('button', { name: /Overdue/ }));
-    fireEvent.click(filters().getByRole('button', { name: /Due tomorrow/ }));
+    fireEvent.click(filters().getByRole('button', { name: /Due within 1 day/ }));
 
     expect(screen.getByText('Task c')).toBeInTheDocument();
     expect(screen.queryByText('Task a')).not.toBeInTheDocument();
@@ -69,8 +69,8 @@ describe('EscalationsPage', () => {
 
     renderWithProviders(<EscalationsPage />, { initialEntries: ['/escalations?level=tomorrow'] });
 
-    expect(filters().queryByRole('button', { name: /Due tomorrow/ })).not.toBeInTheDocument();
-    expect(filters().getByText('Due tomorrow')).toBeInTheDocument();
+    expect(filters().queryByRole('button', { name: /Due within 1 day/ })).not.toBeInTheDocument();
+    expect(filters().getByText('Due within 1 day')).toBeInTheDocument();
     expect(screen.getByText('Task a')).toBeInTheDocument();
   });
 

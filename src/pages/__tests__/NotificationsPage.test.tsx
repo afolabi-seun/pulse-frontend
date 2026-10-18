@@ -1,5 +1,5 @@
 import { screen, fireEvent } from '@testing-library/react';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import NotificationsPage from '../NotificationsPage';
 import { renderWithProviders } from '../../test/renderWithProviders';
 import type { NotificationDto } from '../../types/api';
@@ -12,6 +12,9 @@ const escalated: NotificationDto = {
     assigneeName: 'Emma Wilson', teamLeadName: 'Carol Lead',
   }),
 };
+
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock('react-router-dom', async (orig) => ({ ...(await orig<typeof import('react-router-dom')>()), useNavigate: () => navigate }));
 
 const mockNotifications = vi.hoisted(() => vi.fn());
 vi.mock('../../api/notifications', () => ({
@@ -50,5 +53,49 @@ describe('NotificationsPage — estimate approval escalation', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Task updates' }));
     expect(screen.getByText('Estimate approval overdue — needs your attention')).toBeInTheDocument();
+  });
+});
+
+describe('NotificationsPage: the daily due-date digest', () => {
+  const digest: NotificationDto = {
+    id: 'd1', userId: 'head-1', kind: 'escalation_digest', channel: 'InApp',
+    isRead: false, readAt: null, sentAt: '2026-10-14T09:00:00Z', payload: JSON.stringify({ count: 7, overdue: 3 }),
+  };
+  const show = (items: NotificationDto[]) => {
+    mockNotifications.mockReturnValue({ data: { items, hasMore: false, nextCursor: null }, isLoading: false, error: null, refetch: vi.fn() });
+    return renderWithProviders(<NotificationsPage />);
+  };
+
+  beforeEach(() => navigate.mockClear());
+
+  it('says how many tasks need attention, and how many are overdue', () => {
+    show([digest]);
+
+    expect(screen.getByText('Tasks need your attention')).toBeInTheDocument();
+    expect(screen.getByText(/7 tasks, 3 overdue/)).toBeInTheDocument();
+  });
+
+  it('uses the singular for one task and leaves out an overdue count of zero', () => {
+    show([{ ...digest, payload: JSON.stringify({ count: 1, overdue: 0 }) }]);
+
+    expect(screen.getByText(/— 1 task$/)).toBeInTheDocument();
+    expect(screen.queryByText(/overdue/)).not.toBeInTheDocument();
+  });
+
+  it('opens the Escalations page when clicked, since it names no single task', () => {
+    show([digest]);
+
+    fireEvent.click(screen.getByRole('button', { name: /Tasks need your attention/ }));
+
+    expect(navigate).toHaveBeenCalledWith('/escalations');
+  });
+
+  it('is listed under the Escalations tab', () => {
+    show([digest, escalated]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Escalations' }));
+
+    expect(screen.getByText('Tasks need your attention')).toBeInTheDocument();
+    expect(screen.queryByText('Estimate approval overdue — needs your attention')).not.toBeInTheDocument();
   });
 });
