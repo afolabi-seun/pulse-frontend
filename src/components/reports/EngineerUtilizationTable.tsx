@@ -27,7 +27,7 @@ export function EngineerUtilizationTable({
   emptyLabel?: string;
 }) {
   const identityCols = showRole ? 2 : 1;
-  const totalCols = identityCols + 8 + 3 + 1;
+  const totalCols = identityCols + 10 + 3 + 1;
 
   return (
     <div className="overflow-x-auto">
@@ -35,7 +35,7 @@ export function EngineerUtilizationTable({
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead colSpan={identityCols} />
-          <TableHead colSpan={7} className={GROUP_CLS}>
+          <TableHead colSpan={9} className={GROUP_CLS}>
             <span className="inline-flex items-center gap-1">
               Right now
               <HelpTooltip
@@ -59,7 +59,15 @@ export function EngineerUtilizationTable({
           <TableHead>Engineer</TableHead>
           {showRole && <TableHead>Role</TableHead>}
           <TableHead className={cn('text-right', FIRST_OF_GROUP)}>Active tasks</TableHead>
-          <TableHead className="text-right">Points</TableHead>
+          <TableHead className="text-right">
+            <span className="inline-flex items-center gap-1">
+              Points
+              <HelpTooltip
+                title="Points"
+                body="Points on the engineer's active and blocked tasks. When the PMO has chosen to count only the points still to do, this is the part not yet earned, so it matches Due this cycle and the overworked flag."
+              />
+            </span>
+          </TableHead>
           <TableHead className="text-right">
             <span className="inline-flex items-center gap-1">
               Due this cycle
@@ -75,6 +83,24 @@ export function EngineerUtilizationTable({
               <HelpTooltip
                 title="In QA"
                 body="Tasks awaiting QA review, shown separately from Active tasks/Points — the work already happened, it just isn't counted as current workload while it waits on review."
+              />
+            </span>
+          </TableHead>
+          <TableHead className="text-right">
+            <span className="inline-flex items-center gap-1">
+              Paused
+              <HelpTooltip
+                title="Paused"
+                body="Tasks the engineer has paused. They are left out of Active tasks, Points and escalations, so they are shown here; the team lead, department head and PMO are reminded when one has been paused for a week."
+              />
+            </span>
+          </TableHead>
+          <TableHead className="text-right">
+            <span className="inline-flex items-center gap-1">
+              No estimate
+              <HelpTooltip
+                title="No estimate"
+                body="Backlog tasks assigned to the engineer that have no points yet. No time can be logged against them until a lead gives them an estimate."
               />
             </span>
           </TableHead>
@@ -118,6 +144,12 @@ export function EngineerUtilizationTable({
               </TableCell>
               <TableCell className="whitespace-nowrap text-right text-muted-foreground">
                 {eng.tasksInQa > 0 ? `${eng.tasksInQa} (${eng.pointsInQa} pts)` : '—'}
+              </TableCell>
+              <TableCell className={cn('text-right', (eng.pausedTasks ?? 0) > 0 ? 'text-amber-600' : 'text-muted-foreground')}>
+                {(eng.pausedTasks ?? 0) > 0 ? eng.pausedTasks : '—'}
+              </TableCell>
+              <TableCell className={cn('text-right', (eng.unestimatedBacklogTasks ?? 0) > 0 ? 'text-amber-600' : 'text-muted-foreground')}>
+                {(eng.unestimatedBacklogTasks ?? 0) > 0 ? eng.unestimatedBacklogTasks : '—'}
               </TableCell>
               <TableCell className="text-right text-muted-foreground">{eng.baselinePoints}</TableCell>
               <TableCell className={cn('text-right', loadColor(loadPct))}>{loadPct}%</TableCell>

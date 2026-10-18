@@ -1024,6 +1024,10 @@ export interface EngineerUtilizationEntry {
   subtasksCompleted: number;
   /** The part of totalPoints due this cycle (plus overdue/undated) — what isOverworked is decided on. */
   cyclePoints?: number;
+  /** Tasks the engineer has paused — outside the workload, so they would otherwise go unseen. */
+  pausedTasks?: number;
+  /** Backlog tasks assigned to the engineer that have no estimate, so no time can be logged on them yet. */
+  unestimatedBacklogTasks?: number;
 }
 
 export interface TeamUtilizationDto {
