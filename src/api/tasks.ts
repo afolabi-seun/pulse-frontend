@@ -389,7 +389,8 @@ export function useAddSubtask(taskId: string) {
   return useMutation({
     mutationFn: (title: string) =>
       client.post<SubtaskDto>(`/tasks/${taskId}/subtasks`, { title }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.subtasks(taskId) }),
+    // The checklist drives the task's progress and earned points, so the task itself is stale too, not just its checklist.
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all() }),
   });
 }
 
@@ -398,7 +399,8 @@ export function useToggleSubtask(taskId: string) {
   return useMutation({
     mutationFn: ({ subtaskId, isDone }: { subtaskId: string; isDone: boolean }) =>
       client.patch<SubtaskDto>(`/tasks/${taskId}/subtasks/${subtaskId}`, { isDone }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.subtasks(taskId) }),
+    // The checklist drives the task's progress and earned points, so the task itself is stale too, not just its checklist.
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all() }),
   });
 }
 
@@ -406,7 +408,8 @@ export function useDeleteSubtask(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (subtaskId: string) => client.delete(`/tasks/${taskId}/subtasks/${subtaskId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.subtasks(taskId) }),
+    // The checklist drives the task's progress and earned points, so the task itself is stale too, not just its checklist.
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all() }),
   });
 }
 
