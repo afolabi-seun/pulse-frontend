@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { getWeekStart, parseDateOnly, toIsoDate } from '../lib/dates';
 import type { EngineerHoursDto } from '../types/api';
 import { sumHours, formatHours } from '../lib/hours';
+import BaselineNote from '../components/reports/BaselineNote';
 
 const ROSTER_CAP = 25;
 const MAX_RANGE_DAYS = 62; // matches the backend's own cap
@@ -117,6 +118,7 @@ export default function TimeSummaryPage() {
   return (
     <div className="max-w-4xl">
       <PageHeader title="Time summary" description={displayRange} />
+      <BaselineNote className="-mt-2 mb-4" />
 
       <RangeControls
         view={view} setView={setView}

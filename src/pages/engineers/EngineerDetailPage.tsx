@@ -1,6 +1,6 @@
 import { useAccentColor } from '../../api/organization';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
@@ -31,7 +31,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn, hslVar } from '@/lib/utils';
 import { weeklyBaselinePoints } from '../../lib/points';
-import { formatDate, formatDateTime, daysLate } from '../../lib/dates';
+import { formatDate, formatDateTime, daysLate, getWeekStart, parseDateOnly, toIsoDate, todayIso, workingDaysSince } from '../../lib/dates';
+import { formatHours, sumHours } from '../../lib/hours';
+import { useEngineerTimeActivity } from '../../api/timeEntries';
+import type { EngineerTimeActivityDto, TaskDto } from '../../types/api';
 import { STATUS_VARIANT, STATUS_LABEL } from '../../lib/taskStatus';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
@@ -126,6 +129,53 @@ export default function EngineerDetailPage() {
     { label: 'Stale in-progress', signal: signals.staleInProgress },
   ] : [];
 
+  const taskItems = activeTasks?.items ?? [];
+  const counted = taskItems.filter((t) => t.status === 'active' || t.status === 'blocked');
+  const notCounted = taskItems.filter((t) => !(t.status === 'active' || t.status === 'blocked'));
+
+  const engineerTeam = teams?.find((t) => t.id === engineer?.teamId);
+
+  const renderTask = (task: TaskDto) => {
+    const days = daysLate(task);
+    const isDone = task.status === 'done';
+    return (
+        <li key={task.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setPreviewTaskId(task.id)}
+              className={cn(
+                'block w-full truncate text-left text-sm font-medium hover:text-primary',
+                isDone ? 'text-muted-foreground line-through' : 'text-foreground',
+              )}
+            >
+              {task.taskKey && <span className="font-mono text-xs text-muted-foreground">{task.taskKey} </span>}
+              {task.title}
+            </button>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {task.projectName && <span>{task.projectName} · </span>}
+              {isDone && task.actualEndDate ? `Completed ${formatDate(task.actualEndDate)}` : `Due ${formatDate(task.dueDate)}`}
+              {task.status === 'paused' && task.pausedAt && (
+                <span className="ml-1.5 font-medium text-amber-600">· paused {workingDaysSince(task.pausedAt)} working days</span>
+              )}
+              {task.status === 'backlog' && !(task.points > 0) && (
+                <span className="ml-1.5 font-medium text-amber-600">· needs an estimate before time can be logged</span>
+              )}
+              {!isDone && days !== null && days <= 1 && (
+                <span className="ml-1.5 font-medium text-red-600">
+                  {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? '· due today' : '· due tomorrow'}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">{task.points}pt</span>
+            <Badge label={STATUS_LABEL[task.status]} variant={STATUS_VARIANT[task.status]} />
+          </div>
+        </li>
+    );
+  };
+
   return (
     <div className="max-w-3xl">
       <PageHeader
@@ -161,7 +211,14 @@ export default function EngineerDetailPage() {
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Team</p>
-              <p className="mt-1 font-medium text-foreground">{teams?.find((t) => t.id === engineer.teamId)?.name ?? engineer.team ?? '—'}</p>
+              <p className="mt-1 font-medium text-foreground">{engineerTeam?.name ?? engineer.team ?? '—'}</p>
+              {(engineerTeam?.teamLeadName || engineerTeam?.headName) && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {engineerTeam.teamLeadName && <>Lead: {engineerTeam.teamLeadName}</>}
+                  {engineerTeam.teamLeadName && engineerTeam.headName && ' · '}
+                  {engineerTeam.headName && <>Head: {engineerTeam.headName}</>}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Baseline points</p>
@@ -189,6 +246,8 @@ export default function EngineerDetailPage() {
         </CardContent>
       </Card>
 
+      <TimeLoggedCard engineerId={id!} />
+
       {/* Active tasks */}
       <Card className="mb-5 overflow-hidden">
         <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
@@ -215,42 +274,20 @@ export default function EngineerDetailPage() {
             {showCompletedTasks ? 'No tasks yet.' : 'No active tasks.'}
           </p>
         ) : (
-          <ul role="list" className="divide-y divide-border">
-            {activeTasks!.items.map((task) => {
-              const days = daysLate(task);
-              const isDone = task.status === 'done';
-              return (
-                <li key={task.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
-                  <div className="min-w-0 flex-1">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewTaskId(task.id)}
-                      className={cn(
-                        'block w-full truncate text-left text-sm font-medium hover:text-primary',
-                        isDone ? 'text-muted-foreground line-through' : 'text-foreground',
-                      )}
-                    >
-                      {task.taskKey && <span className="font-mono text-xs text-muted-foreground">{task.taskKey} </span>}
-                      {task.title}
-                    </button>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {task.projectName && <span>{task.projectName} · </span>}
-                      {isDone && task.actualEndDate ? `Completed ${formatDate(task.actualEndDate)}` : `Due ${formatDate(task.dueDate)}`}
-                      {!isDone && days !== null && days <= 1 && (
-                        <span className="ml-1.5 font-medium text-red-600">
-                          {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? '· due today' : '· due tomorrow'}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">{task.points}pt</span>
-                    <Badge label={STATUS_LABEL[task.status]} variant={STATUS_VARIANT[task.status]} />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {notCounted.length > 0 && counted.length > 0 && (
+              <p className="border-b border-border bg-muted/30 px-5 py-1.5 text-xs font-medium text-muted-foreground">Counts toward workload</p>
+            )}
+            {counted.length > 0 && <ul role="list" className="divide-y divide-border">{counted.map(renderTask)}</ul>}
+            {notCounted.length > 0 && (
+              <>
+                <p className="border-y border-border bg-muted/30 px-5 py-1.5 text-xs font-medium text-muted-foreground">
+                  Not counted in workload <span className="font-normal">— Backlog, paused and in-QA work is left out of the figure above</span>
+                </p>
+                <ul role="list" className="divide-y divide-border">{notCounted.map(renderTask)}</ul>
+              </>
+            )}
+          </>
         )}
         {!tasksLoading && (tasksHasPrev || activeTasks?.hasMore) && (
           <div className="px-4 pb-3">
@@ -272,6 +309,7 @@ export default function EngineerDetailPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <p className="text-sm font-semibold text-foreground">Delivered points — last 6 weeks</p>
+          <span className="ml-auto text-xs text-muted-foreground">Counted when a task is marked Done</span>
         </div>
         <CardContent className="p-4">
           {throughputLoading ? (
@@ -429,5 +467,41 @@ export default function EngineerDetailPage() {
 
       <TaskPreviewDrawer taskId={previewTaskId} onClose={() => setPreviewTaskId(null)} />
     </div>
+  );
+}
+
+const hoursIn = (a: EngineerTimeActivityDto) =>
+  sumHours([...a.assigned, ...a.loggedOnly].map((t) => t.hours).concat(a.otherTime.map((c) => c.hours)));
+
+/** Hours this engineer logged this week and last, with a link to the full breakdown. Hidden if the viewer can't see time data. */
+function TimeLoggedCard({ engineerId }: { engineerId: string }) {
+  const thisMonday = getWeekStart(todayIso());
+  const lastMonday = (() => { const d = parseDateOnly(thisMonday); d.setDate(d.getDate() - 7); return toIsoDate(d); })();
+  const lastSunday = (() => { const d = parseDateOnly(thisMonday); d.setDate(d.getDate() - 1); return toIsoDate(d); })();
+  const thisWeek = useEngineerTimeActivity(engineerId, thisMonday, todayIso());
+  const lastWeek = useEngineerTimeActivity(engineerId, lastMonday, lastSunday);
+
+  if (thisWeek.isError || lastWeek.isError) return null;
+
+  return (
+    <Card className="mb-5 overflow-hidden">
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+          <Clock className="h-4 w-4 text-primary" />
+        </div>
+        <p className="text-sm font-semibold text-foreground">Time logged</p>
+        <Link to="/time-summary" className="ml-auto text-xs text-muted-foreground hover:text-primary hover:underline">Full breakdown</Link>
+      </div>
+      <CardContent className="grid grid-cols-2 gap-4 p-4 text-sm">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">This week</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">{thisWeek.data ? formatHours(hoursIn(thisWeek.data)) : '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last week</p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">{lastWeek.data ? formatHours(hoursIn(lastWeek.data)) : '—'}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

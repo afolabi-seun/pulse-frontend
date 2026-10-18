@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { daysLate, toIsoDate, getWeekStart, isCurrentWeek, dueWording } from '../dates';
+import { daysLate, toIsoDate, getWeekStart, isCurrentWeek, dueWording, workingDaysSince } from '../dates';
 
 function isoDaysFromToday(offset: number): string {
   const d = new Date();
@@ -123,5 +123,22 @@ describe('dueWording', () => {
 
   it('is null when there is no due date', () => {
     expect(dueWording(null)).toBeNull();
+  });
+});
+
+describe('workingDaysSince', () => {
+  it('counts the weekdays after a date up to and including today', () => {
+    expect(workingDaysSince('2026-10-07T15:00:00Z', '2026-10-14')).toBe(5); // Wed -> next Wed
+  });
+
+  it('does not count weekends', () => {
+    expect(workingDaysSince('2026-10-09T15:00:00Z', '2026-10-14')).toBe(3); // Fri -> Mon, Tue, Wed
+    expect(workingDaysSince('2026-10-10T09:00:00Z', '2026-10-11')).toBe(0); // Sat -> Sun
+  });
+
+  it('is zero for today, the future and a missing date', () => {
+    expect(workingDaysSince('2026-10-14T08:00:00Z', '2026-10-14')).toBe(0);
+    expect(workingDaysSince('2026-10-20T08:00:00Z', '2026-10-14')).toBe(0);
+    expect(workingDaysSince(null, '2026-10-14')).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import { CardListSkeleton } from '@/components/ui/skeleton';
 import ErrorState from '../components/ui/ErrorState';
 import { Card } from '@/components/ui/card';
 import { formatDate } from '../lib/dates';
+import BaselineNote from '../components/reports/BaselineNote';
 
 const CATEGORY_LABEL: Record<string, string> = {
   task: 'Task', meeting: 'Meeting', admin: 'Admin', leave: 'Leave', other: 'Other',
@@ -34,6 +35,7 @@ export default function MyTimeHistoryPage() {
   return (
     <div className="max-w-2xl">
       <PageHeader title="Time history" />
+      <BaselineNote className="-mt-2 mb-4" />
 
       {data?.items.length === 0 ? (
         <Card>

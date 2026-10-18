@@ -27,7 +27,10 @@ interface TimerDraft {
 }
 const EMPTY_DRAFT: TimerDraft = { category: 'meeting', taskSource: 'mine', taskId: '', subtaskId: '', unclaimedProjectId: '' };
 
-export default function TimerBar({ openTasks, myProjects, tasksLoaded = true }: {
+/** Time is only logged against estimated work, so a Backlog task with no points can't be timed yet. */
+const needsEstimate = (t: TaskDto) => t.status === 'backlog' && !(t.points > 0);
+
+export default function TimerBar({ openTasks: allOpenTasks, myProjects, tasksLoaded = true }: {
   openTasks: TaskDto[]; myProjects: MyProjectDto[];
   /** False while the task list is still being fetched — a restored selection isn't validated until then. */
   tasksLoaded?: boolean;
@@ -40,6 +43,8 @@ export default function TimerBar({ openTasks, myProjects, tasksLoaded = true }: 
   const [draft, setDraft, resetDraft] = useSessionState<TimerDraft>(
     `pulse_timer_draft_${currentUser?.id ?? 'anon'}`, EMPTY_DRAFT);
   const { category, taskSource, taskId, subtaskId, unclaimedProjectId } = draft;
+  const openTasks = allOpenTasks.filter((t) => !needsEstimate(t));
+  const awaitingEstimate = allOpenTasks.length - openTasks.length;
   const setCategory = (c: TimerDraft['category']) => setDraft((d) => ({ ...d, category: c }));
   const setTaskSource = (s: TimerDraft['taskSource']) => setDraft((d) => ({ ...d, taskSource: s }));
   const setTaskId = (id: string) => setDraft((d) => ({ ...d, taskId: id, subtaskId: '' }));
@@ -232,15 +237,20 @@ export default function TimerBar({ openTasks, myProjects, tasksLoaded = true }: 
                 <SearchableSelect
                   value={taskId}
                   onChange={setTaskId}
-                  options={(unclaimedTasks?.items ?? []).map((t) => ({ value: t.id, label: t.taskKey ? `${t.taskKey} — ${t.title}` : t.title }))}
+                  options={(unclaimedTasks?.items ?? []).filter((t) => !needsEstimate(t)).map((t) => ({ value: t.id, label: t.taskKey ? `${t.taskKey} — ${t.title}` : t.title }))}
                   disabled={!unclaimedProjectId}
                   placeholder={!unclaimedProjectId ? 'Pick a project first' : 'Search unclaimed tasks…'}
-                  emptyLabel={unclaimedTasksError ? 'Failed to load tasks' : 'No unclaimed tasks'}
+                  emptyLabel={unclaimedTasksError ? 'Failed to load tasks' : 'No estimated unclaimed tasks'}
                   className="h-8 min-w-[180px] max-w-[16rem] flex-1"
                 />
               </>
             )}
           </>
+        )}
+        {category === 'task' && taskSource === 'mine' && awaitingEstimate > 0 && (
+          <span className="text-xs text-muted-foreground" title="Time is only logged against estimated work">
+            {awaitingEstimate} of your tasks {awaitingEstimate === 1 ? 'has' : 'have'} no estimate yet — ask your team lead to point {awaitingEstimate === 1 ? 'it' : 'them'}.
+          </span>
         )}
         {taskSource === 'unclaimed' && unclaimedTasksError && (
           <span className="text-xs text-destructive">Couldn't load unclaimed tasks for this project.</span>
