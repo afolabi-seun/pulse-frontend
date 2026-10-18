@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import client from './client';
 import type { LeadershipReportDto, OrgTrendDto, PmoReportDto } from '../types/api';
 
@@ -6,6 +6,7 @@ export const reportKeys = {
   leadership: (weekOf?: string) => ['reports', 'leadership', weekOf] as const,
   pmo: (from?: string, to?: string) => ['reports', 'pmo', from, to] as const,
   orgTrend: () => ['reports', 'org-trend'] as const,
+  baseline: () => ['reports', 'baseline'] as const,
 };
 
 export function useLeadershipReport(weekOf?: string) {
@@ -86,4 +87,23 @@ export async function downloadPmoCsv(from?: string, to?: string) {
   a.download = `pmo-report-${suffix}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** The day reports and charts start from; null when there is none. */
+export function useReportingBaseline() {
+  return useQuery({
+    queryKey: reportKeys.baseline(),
+    queryFn: () => client.get<{ date: string | null }>('/reports/baseline').then((r) => r.data.date),
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** PMO only. A null date removes the baseline. Nothing is deleted either way. */
+export function useSetReportingBaseline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (date: string | null) => client.put<{ date: string | null }>('/reports/baseline', { date }).then((r) => r.data.date),
+    // Every report and chart depends on it.
+    onSuccess: () => qc.invalidateQueries(),
+  });
 }

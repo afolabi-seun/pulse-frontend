@@ -387,6 +387,8 @@ export interface TaskDto {
   qaTaskMissing?: boolean;
   reactivationReason: string | null;
   pauseNote: string | null;
+  /** When the task was paused, while it is paused. */
+  pausedAt?: string | null;
   createdAt: string;
   projectName: string | null;
   assigneeName: string | null;

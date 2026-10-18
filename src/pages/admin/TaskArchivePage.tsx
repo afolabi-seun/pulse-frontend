@@ -14,7 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatDateTime } from '../../lib/dates';
+import { formatDate, formatDateTime } from '../../lib/dates';
+import { useReportingBaseline, useSetReportingBaseline } from '../../api/reports';
 
 const DEFAULT_REASON = 'Pilot clean-up: tasks created before the baseline were archived so reporting starts fresh.';
 
@@ -24,6 +25,40 @@ function StatusCounts({ p }: { p: ArchiveTasksResult['projects'][number] }) {
     ['in QA', p.inQa], ['paused', p.paused], ['done', p.done],
   ];
   return <>{parts.filter(([, n]) => n > 0).map(([label, n]) => `${n} ${label}`).join(' · ')}</>;
+}
+
+/** Where reports and charts start. Nothing before it is deleted or archived; they just stop looking further back. */
+function ReportingBaselineCard() {
+  const { data: current } = useReportingBaseline();
+  const setBaseline = useSetReportingBaseline();
+  const [value, setValue] = useState('');
+  const inputClass = 'h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+
+  const save = (date: string | null) =>
+    setBaseline.mutate(date, {
+      onSuccess: () => { toast.success(date ? `Reports now start from ${formatDate(date)}.` : 'Reports no longer have a start date.'); setValue(''); },
+      onError: () => toast.error('Could not change the reporting baseline.'),
+    });
+
+  return (
+    <Card className="mb-6 space-y-3 p-4">
+      <div>
+        <h2 className="text-sm font-semibold">Reporting baseline</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Time, delivered points, throughput, performance and escalation counts start from this day. Earlier records are kept and can be brought back by
+          changing or removing the date; nothing is deleted. {current ? <>Reports currently start from <strong>{formatDate(current)}</strong>.</> : 'Reports currently have no start date.'}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="space-y-1 text-xs font-medium" htmlFor="reporting-baseline">
+          Start reports from
+          <input id="reporting-baseline" type="date" className={`${inputClass} block`} value={value} onChange={(e) => setValue(e.target.value)} />
+        </label>
+        <Button size="sm" disabled={!value} loading={setBaseline.isPending} onClick={() => save(value)}>Set date</Button>
+        {current && <Button size="sm" variant="ghost" disabled={setBaseline.isPending} onClick={() => save(null)}>Remove date</Button>}
+      </div>
+    </Card>
+  );
 }
 
 export default function TaskArchivePage() {
@@ -82,6 +117,8 @@ export default function TaskArchivePage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Task archive" />
+
+      <ReportingBaselineCard />
 
       <Card className="space-y-4 p-4">
         <div>
