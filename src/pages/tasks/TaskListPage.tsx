@@ -8,6 +8,7 @@ import { useCursorPagination } from '../../hooks/useCursorPagination';
 import { useUrlFilters } from '../../hooks/useUrlFilters';
 import { toast } from 'sonner';
 import { useAuth } from '../../hooks/useAuth';
+import { useCanCreateTasks } from '../../hooks/useCanCreateTasks';
 import { useTaskList, useBulkReassign, useBulkStatusChange, type TaskListParams } from '../../api/tasks';
 import { useProjectList, useMyProjects } from '../../api/projects';
 import { useEngineerList, useEngineer } from '../../api/engineers';
@@ -72,6 +73,8 @@ export default function TaskListPage() {
   const canFilterByAssignee = allow('team-lead-or-above');
   const isEngineer = currentUser?.role === 'engineer' || currentUser?.role === 'designer';
   const canPersonal = allow('personal-task-creator');
+  // Creating tasks is for the PMO, team leads and department heads (and HR/Accountant for their own to-dos).
+  const { canCreate: canCreateTask } = useCanCreateTasks();
   const { data: meta }        = useMeta();
   const { data: myEngineer }  = useEngineer(currentUser!.id);
 
@@ -290,7 +293,7 @@ export default function TaskListPage() {
     <div>
       <PageHeader
         title="Tasks"
-        actions={<Button size="sm" onClick={() => navigate('/tasks/new')}>New task</Button>}
+        actions={canCreateTask ? <Button size="sm" onClick={() => navigate('/tasks/new')}>New task</Button> : undefined}
       />
 
       <FilterBar hasFilters={hasFilters} onClear={clearFilters}>
@@ -412,11 +415,11 @@ export default function TaskListPage() {
             <EmptyState
               icon={CheckSquare}
               title={hasFilters ? 'No tasks match your filters' : 'No tasks yet'}
-              description={hasFilters ? 'Try adjusting or clearing your filters.' : 'Create a task to get started.'}
+              description={hasFilters ? 'Try adjusting or clearing your filters.' : canCreateTask ? 'Create a task to get started.' : 'Your team lead adds tasks and assigns them to you.'}
               action={
                 hasFilters
                   ? <button onClick={clearFilters} className="text-xs text-primary hover:underline">Clear filters</button>
-                  : <Button size="sm" onClick={() => navigate('/tasks/new')}>New task</Button>
+                  : canCreateTask ? <Button size="sm" onClick={() => navigate('/tasks/new')}>New task</Button> : undefined
               }
             />
           ) : (

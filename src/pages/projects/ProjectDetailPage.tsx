@@ -17,6 +17,8 @@ import {
   Layers, Lock, Pencil, Plus, Search, Timer, Trash2, UserMinus, UserPlus, Users,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { throughputDatasets, withLegend } from '../../lib/throughput';
+import { useCanCreateTasks } from '../../hooks/useCanCreateTasks';
 import { useProject, useUpdateProject, usePauseProject, useResumeProject, useProjectThroughput, useProjectActivity, useFollowedProjects, useFollowProject, useUnfollowProject, useProjectMembers, useAddProjectMember, useRemoveProjectMember, useAddProjectTeam } from '../../api/projects';
 import { useTeamList } from '../../api/teams';
 import { useWikiPages, useWikiPage, useCreateWikiPage, useUpdateWikiPage, useDeleteWikiPage, useWikiRevisions, useWikiRevision, downloadWikiPagePdf } from '../../api/wiki';
@@ -91,6 +93,7 @@ export default function ProjectDetailPage() {
   const [searchParams] = useSearchParams();
   const { allow } = useAuth();
   const isPm        = allow('pm-or-above');
+  const { canCreateInProjects: canCreateTask } = useCanCreateTasks();
   const isProductPm = allow('product-manager-or-above');
   // Follow/Unfollow is team lead and above — same capability the Dashboard's Followed
   // projects section uses.
@@ -405,7 +408,7 @@ export default function ProjectDetailPage() {
   });
   const chartData = {
     labels: chartLabels,
-    datasets: [{ data: (throughput ?? []).map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 }],
+    datasets: throughputDatasets(throughput ?? [], accent()),
   };
 
   return (
@@ -463,7 +466,7 @@ export default function ProjectDetailPage() {
               {isPm && project.status === 'paused' && (
                 <Button size="sm" onClick={onResume} loading={resumeProject.isPending}>Resume</Button>
               )}
-              {project.isActive && (
+              {project.isActive && canCreateTask && (
                 <Button size="sm" onClick={() => navigate(`/tasks/new?projectId=${id}`)}>New task</Button>
               )}
             </div>
@@ -957,7 +960,7 @@ export default function ProjectDetailPage() {
             <Card>
               <EmptyState icon={CheckSquare} title="No tasks yet"
                 description="Tasks assigned to this project will appear here."
-                action={project.isActive
+                action={project.isActive && canCreateTask
                   ? <Button size="sm" onClick={() => navigate(`/tasks/new?projectId=${id}`)}>Add first task</Button>
                   : undefined}
               />
@@ -1438,7 +1441,7 @@ export default function ProjectDetailPage() {
             ) : (throughput?.length ?? 0) === 0 ? (
               <p className="py-4 text-center text-xs text-muted-foreground">No throughput data yet.</p>
             ) : (
-              <div className="h-44"><Bar data={chartData} options={CHART_OPTIONS} /></div>
+              <div className="h-44"><Bar data={chartData} options={withLegend(CHART_OPTIONS)} /></div>
             )}
           </CardContent>
         </Card>

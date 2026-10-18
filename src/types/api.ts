@@ -121,6 +121,10 @@ export interface AppMetaDto {
   sprintStatuses: EnumMetaDto[];
   pointScale: PointScaleEntryDto[];
   priorityScale: PriorityScaleEntryDto[];
+  /** True when velocity and performance count points earned in a period instead of points on tasks finished in it. */
+  measuresInEarnedPoints?: boolean;
+  /** True when the PMO has allowed engineers and designers to create tasks (for themselves). */
+  engineersCanCreateTasks?: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -844,6 +848,10 @@ export interface ThresholdsDto {
   priorityScale: PriorityScaleEntryDto[];
   /** When on, workload counts the points still to do on each task instead of all of them. */
   useProgressInWorkload?: boolean;
+  /** When on, velocity and performance count points earned in a period instead of points on tasks finished in it. */
+  useEarnedPointsInVelocity?: boolean;
+  /** When on, engineers and designers may create tasks, each filed for themselves and unestimated. */
+  engineersCanCreateTasks?: boolean;
 }
 
 export interface DepartmentThresholdDto {

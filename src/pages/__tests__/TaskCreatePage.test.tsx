@@ -16,8 +16,11 @@ vi.mock('../../api/tasks', () => ({
 
 // pm-or-above implies team-lead-or-above in the real capability hierarchy — the mock mirrors
 // that so a PM-role test doesn't accidentally pass by granting a capability the role lacks.
+const mockMeta = vi.hoisted(() => ({ engineersCanCreateTasks: false }));
+vi.mock('../../api/meta', () => ({ useMeta: () => ({ data: { taskTypes: [], engineersCanCreateTasks: mockMeta.engineersCanCreateTasks } }) }));
+
 const mockAllow = vi.fn((capability: string) => capability === 'pm-or-above' || capability === 'team-lead-or-above');
-const mockCurrentUser = { id: 'u1', name: 'Priya PM', role: 'project_manager', permissions: [], capabilities: [] };
+const mockCurrentUser = { id: 'u1', name: 'Priya PM', role: 'project_manager', permissions: [], capabilities: [] as string[] };
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ currentUser: mockCurrentUser, allow: mockAllow }),
 }));
@@ -106,11 +109,26 @@ describe('TaskCreatePage', () => {
     expect(screen.queryByText('Assign to me')).not.toBeInTheDocument();
   });
 
-  it('shows a static assignee line instead of a dropdown when you have no one else to assign to', () => {
+  it('tells someone who cannot create tasks who can, instead of showing a form that would be refused', () => {
     mockAllow.mockImplementation(() => false);
     renderWithProviders(<TaskCreatePage />);
+
+    expect(screen.getByText('Your team lead adds tasks')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/task title/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /create task/i })).not.toBeInTheDocument();
+  });
+
+  it('lets an engineer create once the PMO has allowed it, with the task assigned to them', () => {
+    mockAllow.mockImplementation(() => false);
+    mockMeta.engineersCanCreateTasks = true;
+    mockCurrentUser.role = 'engineer';
+    renderWithProviders(<TaskCreatePage />);
+
+    expect(screen.getByPlaceholderText(/task title/i)).toBeInTheDocument();
     expect(screen.getByText('Assigned to you')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/search engineers/i)).not.toBeInTheDocument();
+
+    mockMeta.engineersCanCreateTasks = false;
+    mockCurrentUser.role = 'project_manager';
   });
 
   it('shows validation errors when submitted empty', async () => {
@@ -200,18 +218,16 @@ describe('TaskCreatePage', () => {
       expect(mockMutate).not.toHaveBeenCalled();
     });
 
-    it('switches back to an ordinary project task', async () => {
+    it('has no project-task option: HR and Accountant keep personal to-dos only', () => {
       renderWithProviders(<TaskCreatePage />);
-      fireEvent.click(screen.getByRole('button', { name: 'Project task' }));
 
-      expect(screen.getByText('New task')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /create task/i }));
-      await waitFor(() => expect(screen.getByText(/project is required/i)).toBeInTheDocument());
+      expect(screen.queryByRole('button', { name: 'Project task' })).not.toBeInTheDocument();
+      expect(screen.getByText('New personal task')).toBeInTheDocument();
     });
 
-    it('opens as a project task when arriving from a specific project', () => {
+    it('stays personal even when arriving from a specific project', () => {
       renderWithProviders(<TaskCreatePage />, { initialEntries: ['/tasks/new?projectId=mp1'] });
-      expect(screen.getByText('New task')).toBeInTheDocument();
+      expect(screen.getByText('New personal task')).toBeInTheDocument();
     });
   });
 });

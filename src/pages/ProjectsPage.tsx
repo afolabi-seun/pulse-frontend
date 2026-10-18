@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { useCurrentRole } from '../hooks/useCurrentRole';
+import { throughputDatasets, withLegend } from '../lib/throughput';
 import { useProjectList, useCreateProject, useUpdateProject, useProjectThroughput, useDeleteProject } from '../api/projects';
 import { useTeamList } from '../api/teams';
 import { applyServerErrors } from '../lib/formErrors';
@@ -60,9 +61,9 @@ function ThroughputChart({ projectId }: { projectId: string }) {
   });
   const chartData = {
     labels,
-    datasets: [{ data: data.map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 }],
+    datasets: throughputDatasets(data, accent()),
   };
-  return <div className="h-32"><Bar data={chartData} options={CHART_OPTIONS} /></div>;
+  return <div className="h-32"><Bar data={chartData} options={withLegend(CHART_OPTIONS)} /></div>;
 }
 
 function ProjectCard({ project, canEdit, canDelete, onDelete }: {
