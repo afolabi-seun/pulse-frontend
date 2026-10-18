@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle, AlertTriangle, ArrowRight, AtSign, BarChart2, Bell,
-  CheckCircle2, ClipboardList, FlaskConical, GitPullRequest, KeyRound, MessageSquare, ShieldAlert, Shuffle, XCircle,
+  CheckCircle2, ClipboardList, FlaskConical, GitPullRequest, KeyRound, MessageSquare, PauseCircle, ShieldAlert, Shuffle, XCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '../api/notifications';
@@ -27,6 +27,7 @@ const KIND_ICON: Record<string, LucideIcon> = {
   escalation_t1:       AlertCircle,
   escalation_overdue:  AlertCircle,
   escalation_digest:   AlertTriangle,
+  paused_task_reminder: PauseCircle,
   blocker_flagged:     AlertTriangle,
   weekly_vitals_prompt: BarChart2,
   weekly_report_ready: BarChart2,
@@ -61,6 +62,7 @@ const KIND_ICON_BG: Record<string, string> = {
   escalation_t1:       'bg-red-50 dark:bg-red-950/40',
   escalation_overdue:  'bg-red-50 dark:bg-red-950/40',
   escalation_digest:   'bg-amber-50 dark:bg-amber-950/40',
+  paused_task_reminder: 'bg-amber-50 dark:bg-amber-950/40',
   blocker_flagged:     'bg-red-50 dark:bg-red-950/40',
   weekly_vitals_prompt: 'bg-violet-50 dark:bg-violet-950/40',
   weekly_report_ready: 'bg-emerald-50 dark:bg-emerald-950/40',
@@ -95,6 +97,7 @@ const KIND_ICON_CLS: Record<string, string> = {
   escalation_t1:       'text-red-500',
   escalation_overdue:  'text-red-500',
   escalation_digest:   'text-amber-500',
+  paused_task_reminder: 'text-amber-500',
   blocker_flagged:     'text-red-500',
   weekly_vitals_prompt: 'text-violet-600 dark:text-violet-400',
   weekly_report_ready: 'text-emerald-600 dark:text-emerald-400',
@@ -129,6 +132,7 @@ const KIND_TITLE: Record<string, string> = {
   escalation_t1:       'Task due soon',
   escalation_overdue:  'Task overdue',
   escalation_digest:   'Tasks need your attention',
+  paused_task_reminder: 'Paused tasks need a decision',
   blocker_flagged:     'Blocker flagged',
   weekly_vitals_prompt: 'Weekly vitals survey ready',
   weekly_report_ready: 'Weekly leadership report ready',
@@ -167,8 +171,14 @@ const TASK_LINK_KINDS = new Set([
 ]);
 
 const ESCALATION_KINDS = new Set([
-  'escalation_t1', 'escalation_t3', 'escalation_overdue', 'escalation_digest', 'blocker_flagged',
+  'escalation_t1', 'escalation_t3', 'escalation_overdue', 'escalation_digest', 'paused_task_reminder', 'blocker_flagged',
 ]);
+
+// Summary alerts that name no single task: they open the page that lists the tasks they are about.
+const PAGE_LINKS: Record<string, string> = {
+  escalation_digest: '/escalations',
+  paused_task_reminder: '/tasks',
+};
 
 const TASK_UPDATE_KINDS = new Set([
   'task_assigned', 'task_unblocked', 'qa_accepted', 'qa_rejected', 'qa_unassigned', 'task_loaned', 'task_recalled',
@@ -201,7 +211,7 @@ function parsePayload(n: NotificationDto): {
   rejectedByName?: string; flaggedByName?: string; mentionedByName?: string;
   repliedByName?: string; replyText?: string;
   points?: number; assigneeName?: string; teamLeadName?: string;
-  count?: number; overdue?: number;
+  count?: number; overdue?: number; tier?: string;
 } {
   if (!n.payload) return {};
   try {
@@ -220,6 +230,7 @@ function parsePayload(n: NotificationDto): {
       teamLeadName:    p['teamLeadName']    as string | undefined,
       count:           p['count']           as number | undefined,
       overdue:         p['overdue']         as number | undefined,
+      tier:            p['tier']            as string | undefined,
     };
   } catch { return {}; }
 }
@@ -241,11 +252,13 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
   n: NotificationDto; onMarkRead: () => void; onOpenTask: (taskId: string) => void;
 }) {
   const navigate   = useNavigate();
-  const { taskId, taskTitle, reason, rejectedByName, flaggedByName, mentionedByName, repliedByName, replyText, points, assigneeName, teamLeadName, count, overdue } = parsePayload(n);
+  const { taskId, taskTitle, reason, rejectedByName, flaggedByName, mentionedByName, repliedByName, replyText, points, assigneeName, teamLeadName, count, overdue, tier } = parsePayload(n);
   const isTaskLink  = TASK_LINK_KINDS.has(n.kind) && !!taskId;
-  // The daily due-date digest names no single task: it opens the Escalations page, which lists them.
+  // The daily due-date digest and the paused-task reminder name no single task: each opens the page that lists them.
+  const pageLink    = PAGE_LINKS[n.kind];
   const isDigest    = n.kind === 'escalation_digest';
-  const clickable   = isTaskLink || isDigest;
+  const isPausedReminder = n.kind === 'paused_task_reminder';
+  const clickable   = isTaskLink || !!pageLink;
   const isT1        = n.kind === 'escalation_t1';
   const isQaRej     = n.kind === 'qa_rejected' || n.kind === 'estimate_rejected';
   const isLoaned    = n.kind === 'task_loaned';
@@ -261,9 +274,9 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
   const iconCls = KIND_ICON_CLS[n.kind] ?? 'text-muted-foreground';
 
   const handleRowClick = () => {
-    if (isDigest) {
+    if (pageLink) {
       if (!n.isRead) onMarkRead();
-      navigate('/escalations');
+      navigate(pageLink);
       return;
     }
     if (!isTaskLink || !taskId) return;
@@ -300,6 +313,11 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
               — {count} task{count === 1 ? '' : 's'}{overdue ? `, ${overdue} overdue` : ''}
             </span>
           )}
+          {isPausedReminder && count !== undefined && (
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              — {count} task{count === 1 ? '' : 's'} paused for a week or more
+            </span>
+          )}
           {taskTitle && (
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">— {taskTitle}</span>
           )}
@@ -327,7 +345,7 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
 
         {isEstimateEscalated && points != null && (
           <p className="mt-1 rounded bg-red-50 px-1.5 py-0.5 text-[11px] leading-snug text-red-700 dark:bg-red-950/20 dark:text-red-400">
-            {points} pts{assigneeName ? ` for ${assigneeName}` : ''}{teamLeadName ? ` — waiting on ${teamLeadName}` : ''}
+            {points} pts{assigneeName ? ` for ${assigneeName}` : ''}{teamLeadName ? ` — waiting on ${teamLeadName}` : ''}{tier === 'pmo' ? ' — neither the team lead nor the department head has acted' : ''}
           </p>
         )}
 

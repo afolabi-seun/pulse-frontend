@@ -99,3 +99,48 @@ describe('NotificationsPage: the daily due-date digest', () => {
     expect(screen.queryByText('Estimate approval overdue — needs your attention')).not.toBeInTheDocument();
   });
 });
+
+describe('NotificationsPage: paused-task reminder and PMO escalation', () => {
+  const show = (items: NotificationDto[]) => {
+    mockNotifications.mockReturnValue({ data: { items, hasMore: false, nextCursor: null }, isLoading: false, error: null, refetch: vi.fn() });
+    return renderWithProviders(<NotificationsPage />);
+  };
+  const reminder: NotificationDto = {
+    id: 'p1', userId: 'lead-1', kind: 'paused_task_reminder', channel: 'InApp',
+    isRead: false, readAt: null, sentAt: '2026-10-14T09:00:00Z', payload: JSON.stringify({ count: 3 }),
+  };
+
+  beforeEach(() => navigate.mockClear());
+
+  it('says how many tasks have sat paused', () => {
+    show([reminder]);
+
+    expect(screen.getByText('Paused tasks need a decision')).toBeInTheDocument();
+    expect(screen.getByText(/3 tasks paused for a week or more/)).toBeInTheDocument();
+  });
+
+  it('opens the task list when clicked, since it names no single task', () => {
+    show([reminder]);
+
+    fireEvent.click(screen.getByRole('button', { name: /Paused tasks need a decision/ }));
+
+    expect(navigate).toHaveBeenCalledWith('/tasks');
+  });
+
+  it('is listed under the Escalations tab', () => {
+    show([reminder]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Escalations' }));
+
+    expect(screen.getByText('Paused tasks need a decision')).toBeInTheDocument();
+  });
+
+  it('tells the PMO that neither the team lead nor the department head has acted', () => {
+    show([{
+      id: 'e1', userId: 'pm-1', kind: 'estimate_approval_escalated', channel: 'InApp', isRead: false, readAt: null, sentAt: '2026-10-14T09:00:00Z',
+      payload: JSON.stringify({ taskId: 't1', taskTitle: 'Fix login', points: 5, assigneeName: 'Ada', teamLeadName: 'Lena Lead, Hari Head', tier: 'pmo' }),
+    }]);
+
+    expect(screen.getByText(/5 pts for Ada — waiting on Lena Lead, Hari Head — neither the team lead nor the department head has acted/)).toBeInTheDocument();
+  });
+});
