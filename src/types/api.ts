@@ -276,7 +276,10 @@ export interface ProjectDto {
 
 export interface ThroughputWeekDto {
   weekOf: string;
+  /** Points on tasks finished that week. */
   pointsDelivered: number;
+  /** Points earned that week as work moved forward, including parts of unfinished tasks; negative when work was taken back. */
+  pointsEarned?: number;
 }
 
 export interface ProjectActivityDto {
@@ -389,6 +392,14 @@ export interface TaskDto {
   pauseNote: string | null;
   /** When the task was paused, while it is paused. */
   pausedAt?: string | null;
+  /** What the engineer or lead set by hand (0, 25, 50, 75); used only while the task has no checklist. */
+  progressPercent?: number;
+  /** How far along the task is, however that is worked out (status, checklist or the manual step). */
+  effectiveProgress?: number;
+  /** Points earned so far: points times effective progress. */
+  earnedPoints?: number;
+  /** True when the checklist, not a manual step, is setting the progress. */
+  progressFromChecklist?: boolean;
   createdAt: string;
   projectName: string | null;
   assigneeName: string | null;
@@ -831,6 +842,8 @@ export interface ThresholdsDto {
   qaLeadTimeDays: number;
   pointScale: PointScaleEntryDto[];
   priorityScale: PriorityScaleEntryDto[];
+  /** When on, workload counts the points still to do on each task instead of all of them. */
+  useProgressInWorkload?: boolean;
 }
 
 export interface DepartmentThresholdDto {

@@ -266,6 +266,18 @@ export function usePauseTask(taskId: string) {
   });
 }
 
+/** Says how far along a task is: 0, 25, 50 or 75 percent. */
+export function useSetTaskProgress(taskId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (percent: number) => client.post<TaskDto>(`/tasks/${taskId}/progress`, { percent }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
+      qc.invalidateQueries({ queryKey: taskKeys.all() });
+    },
+  });
+}
+
 export function useResumeTask(taskId: string) {
   const qc = useQueryClient();
   return useMutation({
