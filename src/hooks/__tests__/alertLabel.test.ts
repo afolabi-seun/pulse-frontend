@@ -30,6 +30,7 @@ describe('live alert text for due-date warnings', () => {
     expect(alertLabel(alert('escalation_overdue', daysFromToday(-2)))).toBe('Task is now overdue');
     expect(alertLabel(alert('task_assigned'))).toBe('A task has been assigned to you');
     expect(alertLabel(alert('escalation_digest'))).toBe('Tasks need your attention — see Escalations');
+    expect(alertLabel(alert('paused_task_reminder'))).toBe('Paused tasks need a decision — resume or reassign');
     expect(alertLabel(alert('something_new'))).toBe('New notification');
   });
 });

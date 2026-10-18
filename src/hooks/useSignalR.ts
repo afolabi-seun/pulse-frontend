@@ -40,6 +40,7 @@ const KIND_LABEL: Record<string, string> = {
   // The two early-warning stages are named for 3 days and 1 day out, but can fire with less time left, so their text comes from the task's real due
   // date (see alertLabel); these are only the fallback when a notification carries none.
   escalation_digest:  'Tasks need your attention — see Escalations',
+  paused_task_reminder: 'Paused tasks need a decision — resume or reassign',
   escalation_t3:      'Task escalation — due soon',
   escalation_t1:      'Task escalation — due soon',
   escalation_overdue: 'Task is now overdue',
@@ -94,7 +95,8 @@ export function useSignalR() {
         duration: 6000,
         action: taskId
           ? { label: 'View', onClick: () => navigate(`/tasks/${taskId}`) }
-          : notification.kind === 'escalation_digest' ? { label: 'View', onClick: () => navigate('/escalations') } : undefined,
+          : notification.kind === 'escalation_digest' ? { label: 'View', onClick: () => navigate('/escalations') }
+          : notification.kind === 'paused_task_reminder' ? { label: 'View', onClick: () => navigate('/tasks') } : undefined,
       });
     });
 

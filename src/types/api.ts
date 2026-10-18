@@ -869,6 +869,7 @@ export interface EstimationDto {
   pendingApproverNames: string[] | null;
   canApprove: boolean;
   isEscalated: boolean;
+  isEscalatedToPmo: boolean;
 }
 
 export interface RetroDto {
