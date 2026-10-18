@@ -506,6 +506,8 @@ export default function ThresholdsPage() {
         escalationT1MinHours:   Number(values.escalationT1MinHours),
         qaLeadTimeDays:         Number(values.qaLeadTimeDays),
         useProgressInWorkload:  !!values.useProgressInWorkload,
+        useEarnedPointsInVelocity: !!values.useEarnedPointsInVelocity,
+        engineersCanCreateTasks: !!values.engineersCanCreateTasks,
         pointScale:             scaleEntries,
         priorityScale:          priorityEntries,
       },
@@ -550,6 +552,45 @@ export default function ThresholdsPage() {
               <span className="mt-0.5 block text-xs text-muted-foreground">
                 When on, a task that is 75% done weighs a quarter of its points in an engineer's workload and in the overwork signals, instead of all of them.
                 This changes workload and overwork figures across the organization, so it is off until you turn it on. Earned points are recorded either way.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3 text-sm" htmlFor="use-earned-in-velocity">
+            <input
+              id="use-earned-in-velocity"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-input"
+              disabled={!canEdit}
+              {...register('useEarnedPointsInVelocity')}
+            />
+            <span>
+              <span className="font-medium text-foreground">Measure velocity and performance in earned points</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                When on, velocity, the delivered-points figures on Performance and in reports, and the project and team totals count the points earned in the period
+                as work moved forward, instead of the points on tasks finished in it. Delivered and Earned are always shown side by side on the charts. This changes those headline
+                figures for everyone, so it is off until you turn it on. Sprint velocity and burndown are not affected.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3 text-sm" htmlFor="engineers-can-create-tasks">
+            <input
+              id="engineers-can-create-tasks"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-input"
+              disabled={!canEdit}
+              {...register('engineersCanCreateTasks')}
+            />
+            <span>
+              <span className="font-medium text-foreground">Let engineers and designers create tasks</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Tasks are created by the PMO, team leads and department heads. When this is on, engineers and designers can also create tasks on projects they
+                can open; each task is assigned to its creator with no estimate, and their lead points it. Off by default.
               </span>
             </span>
           </label>

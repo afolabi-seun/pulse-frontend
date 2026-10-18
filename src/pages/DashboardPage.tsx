@@ -16,6 +16,7 @@ import { useCheckInHistory, useStandupSummary } from '../api/checkIns';
 import { useTimeEntriesInRange } from '../api/timeEntries';
 import { useFollowedProjects, useMyProjects } from '../api/projects';
 import { useMyPerformance } from '../api/performance';
+import { throughputDatasets, withLegend } from '../lib/throughput';
 import { usePmoReport, useOrgTrend } from '../api/reports';
 import { useSprintList } from '../api/sprints';
 import { useEscalations } from '../api/escalations';
@@ -507,17 +508,13 @@ export default function DashboardPage() {
                               <Bar
                                 data={{
                                   labels: deliveryTrend.map((p) => formatDate(p.weekOf)),
-                                  datasets: [{
-                                    data: deliveryTrend.map((p) => p.pointsDelivered),
-                                    // The last bar is lighter when it's the current, still-in-progress week —
-                                    // a full-saturation bar next to a partial week's total reads as a real
-                                    // drop-off that isn't there yet.
-                                    backgroundColor: deliveryTrend.map((p) =>
-                                      isCurrentWeek(p.weekOf) ? accent(0.4) : accent()),
-                                    borderRadius: 4,
-                                  }],
+                                  // The last delivered bar is lighter when it's the current, still-in-progress week —
+                                  // a full-saturation bar next to a partial week's total reads as a real
+                                  // drop-off that isn't there yet.
+                                  datasets: throughputDatasets(deliveryTrend, deliveryTrend.map((p) =>
+                                    isCurrentWeek(p.weekOf) ? accent(0.4) : accent())),
                                 }}
-                                options={VELOCITY_CHART_OPTIONS}
+                                options={withLegend(VELOCITY_CHART_OPTIONS)}
                               />
                             )}
                           </div>

@@ -5,6 +5,8 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { useAuth } from '../hooks/useAuth';
+import { useMeasuresInEarnedPoints } from '../api/meta';
+import { throughputDatasets } from '../lib/throughput';
 import { useMyPerformance, useTeamPerformance, useProjectPerformance } from '../api/performance';
 import { useEngineer, useEngineerThroughput } from '../api/engineers';
 import { useTeamList, useTeamThroughput } from '../api/teams';
@@ -105,10 +107,18 @@ const METRIC_TOOLTIPS = {
   },
 };
 
+/** The velocity and delivered-points explanations, worded for what the PMO has chosen to count. */
+function velocityTooltip(earned: boolean) {
+  return earned
+    ? { title: 'Velocity', body: 'Points earned in this window ÷ the points the baseline expects over it (baseline points × days in the window ÷ baseline cycle days). Points are earned as work moves forward, so a task counts as it progresses, not only when it is finished. 100% means on pace with the baseline.' }
+    : METRIC_TOOLTIPS.velocity;
+}
+
 function MetricsGrid({ m }: { m: PerformanceMetricsDto }) {
+  const earned = useMeasuresInEarnedPoints();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      <MetricTile label="Velocity" value={`${Math.round(m.velocityRatio * 100)}%`} sub={`${m.deliveredPoints}/${Math.round(m.expectedPoints)} pts`} tooltip={METRIC_TOOLTIPS.velocity} />
+      <MetricTile label="Velocity" value={`${Math.round(m.velocityRatio * 100)}%`} sub={`${m.deliveredPoints}/${Math.round(m.expectedPoints)} pts`} tooltip={velocityTooltip(earned)} />
       <MetricTile label="On-time rate" value={pct(m.onTimeRate)} sub={`${m.tasksCompletedOnTime}/${m.tasksWithDueDate} tasks`} tooltip={METRIC_TOOLTIPS.onTimeRate} />
       <MetricTile label="QA reject rate" value={pct(m.qaRejectRate)} sub={`${m.tasksQaRejected}/${m.tasksSentToQa} sent`} tooltip={METRIC_TOOLTIPS.qaRejectRate} />
       <MetricTile label="Check-in consistency" value={pct(m.checkInConsistency)} sub={`${m.checkInCount}/${m.expectedCheckInDays} days`} tooltip={METRIC_TOOLTIPS.checkInConsistency} />
@@ -137,7 +147,7 @@ function WeeklyVelocityChart({ data, isLoading, weeklyBaseline }: {
   const chartData = {
     labels,
     datasets: [
-      { type: 'bar' as const, label: 'Delivered', data: data.map((w) => w.pointsDelivered), backgroundColor: accent(), borderRadius: 4 },
+      ...throughputDatasets(data, accent()).map((d) => ({ type: 'bar' as const, ...d })),
       ...(weeklyBaseline
         ? [{
             type: 'line' as const,
@@ -311,6 +321,7 @@ function ProjectPerformanceSection() {
   const [projectId, setProjectId] = useState<string>('');
   const [days, setDays] = useState(30);
   const { data, isLoading, error } = useProjectPerformance(projectId, days);
+  const earned = useMeasuresInEarnedPoints();
 
   return (
     <section>
@@ -341,7 +352,13 @@ function ProjectPerformanceSection() {
           <CardContent className="p-4">
             <p className="mb-3 text-xs text-muted-foreground">{data.engineerCount} engineer(s) on this project</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <MetricTile label="Delivered points" value={String(data.deliveredPoints)} tooltip={METRIC_TOOLTIPS.deliveredPoints} />
+              <MetricTile
+                label={earned ? 'Earned points' : 'Delivered points'}
+                value={String(data.deliveredPoints)}
+                tooltip={earned
+                  ? { title: 'Earned points', body: 'Points earned across every member of this project in the selected window, as work moved forward — finished or not.' }
+                  : METRIC_TOOLTIPS.deliveredPoints}
+              />
               <MetricTile label="On-time rate" value={pct(data.onTimeRate)} sub={`${data.tasksCompletedOnTime}/${data.tasksWithDueDate} tasks`} tooltip={METRIC_TOOLTIPS.onTimeRate} />
               <MetricTile label="QA reject rate" value={pct(data.qaRejectRate)} sub={`${data.tasksQaRejected}/${data.tasksSentToQa} sent`} tooltip={METRIC_TOOLTIPS.qaRejectRate} />
               <MetricTile label="Escalated tasks" value={String(data.escalatedTaskCount)} tooltip={METRIC_TOOLTIPS.escalatedTasks} />
