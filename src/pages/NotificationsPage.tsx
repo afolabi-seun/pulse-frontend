@@ -26,6 +26,7 @@ const KIND_ICON: Record<string, LucideIcon> = {
   escalation_t3:       AlertTriangle,
   escalation_t1:       AlertCircle,
   escalation_overdue:  AlertCircle,
+  escalation_digest:   AlertTriangle,
   blocker_flagged:     AlertTriangle,
   weekly_vitals_prompt: BarChart2,
   weekly_report_ready: BarChart2,
@@ -59,6 +60,7 @@ const KIND_ICON_BG: Record<string, string> = {
   escalation_t3:       'bg-amber-50 dark:bg-amber-950/40',
   escalation_t1:       'bg-red-50 dark:bg-red-950/40',
   escalation_overdue:  'bg-red-50 dark:bg-red-950/40',
+  escalation_digest:   'bg-amber-50 dark:bg-amber-950/40',
   blocker_flagged:     'bg-red-50 dark:bg-red-950/40',
   weekly_vitals_prompt: 'bg-violet-50 dark:bg-violet-950/40',
   weekly_report_ready: 'bg-emerald-50 dark:bg-emerald-950/40',
@@ -92,6 +94,7 @@ const KIND_ICON_CLS: Record<string, string> = {
   escalation_t3:       'text-amber-500',
   escalation_t1:       'text-red-500',
   escalation_overdue:  'text-red-500',
+  escalation_digest:   'text-amber-500',
   blocker_flagged:     'text-red-500',
   weekly_vitals_prompt: 'text-violet-600 dark:text-violet-400',
   weekly_report_ready: 'text-emerald-600 dark:text-emerald-400',
@@ -125,6 +128,7 @@ const KIND_TITLE: Record<string, string> = {
   escalation_t3:       'Task approaching due date',
   escalation_t1:       'Task due soon',
   escalation_overdue:  'Task overdue',
+  escalation_digest:   'Tasks need your attention',
   blocker_flagged:     'Blocker flagged',
   weekly_vitals_prompt: 'Weekly vitals survey ready',
   weekly_report_ready: 'Weekly leadership report ready',
@@ -163,7 +167,7 @@ const TASK_LINK_KINDS = new Set([
 ]);
 
 const ESCALATION_KINDS = new Set([
-  'escalation_t1', 'escalation_t3', 'escalation_overdue', 'blocker_flagged',
+  'escalation_t1', 'escalation_t3', 'escalation_overdue', 'escalation_digest', 'blocker_flagged',
 ]);
 
 const TASK_UPDATE_KINDS = new Set([
@@ -197,6 +201,7 @@ function parsePayload(n: NotificationDto): {
   rejectedByName?: string; flaggedByName?: string; mentionedByName?: string;
   repliedByName?: string; replyText?: string;
   points?: number; assigneeName?: string; teamLeadName?: string;
+  count?: number; overdue?: number;
 } {
   if (!n.payload) return {};
   try {
@@ -213,6 +218,8 @@ function parsePayload(n: NotificationDto): {
       points:          p['points']          as number | undefined,
       assigneeName:    p['assigneeName']    as string | undefined,
       teamLeadName:    p['teamLeadName']    as string | undefined,
+      count:           p['count']           as number | undefined,
+      overdue:         p['overdue']         as number | undefined,
     };
   } catch { return {}; }
 }
@@ -234,8 +241,11 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
   n: NotificationDto; onMarkRead: () => void; onOpenTask: (taskId: string) => void;
 }) {
   const navigate   = useNavigate();
-  const { taskId, taskTitle, reason, rejectedByName, flaggedByName, mentionedByName, repliedByName, replyText, points, assigneeName, teamLeadName } = parsePayload(n);
+  const { taskId, taskTitle, reason, rejectedByName, flaggedByName, mentionedByName, repliedByName, replyText, points, assigneeName, teamLeadName, count, overdue } = parsePayload(n);
   const isTaskLink  = TASK_LINK_KINDS.has(n.kind) && !!taskId;
+  // The daily due-date digest names no single task: it opens the Escalations page, which lists them.
+  const isDigest    = n.kind === 'escalation_digest';
+  const clickable   = isTaskLink || isDigest;
   const isT1        = n.kind === 'escalation_t1';
   const isQaRej     = n.kind === 'qa_rejected' || n.kind === 'estimate_rejected';
   const isLoaned    = n.kind === 'task_loaned';
@@ -251,6 +261,11 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
   const iconCls = KIND_ICON_CLS[n.kind] ?? 'text-muted-foreground';
 
   const handleRowClick = () => {
+    if (isDigest) {
+      if (!n.isRead) onMarkRead();
+      navigate('/escalations');
+      return;
+    }
     if (!isTaskLink || !taskId) return;
     if (!n.isRead) onMarkRead();
     onOpenTask(taskId);
@@ -258,14 +273,14 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
 
   return (
     <div
-      role={isTaskLink ? 'button' : undefined}
-      tabIndex={isTaskLink ? 0 : undefined}
-      onClick={isTaskLink ? handleRowClick : undefined}
-      onKeyDown={isTaskLink ? (e) => e.key === 'Enter' && handleRowClick() : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? handleRowClick : undefined}
+      onKeyDown={clickable ? (e) => e.key === 'Enter' && handleRowClick() : undefined}
       className={cn(
         'flex items-center gap-2.5 px-4 py-2.5 transition-colors',
         !n.isRead && 'bg-primary/5',
-        isTaskLink && 'cursor-pointer hover:bg-muted/60',
+        clickable && 'cursor-pointer hover:bg-muted/60',
       )}
     >
       {/* Icon */}
@@ -280,6 +295,11 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
             {title}
           </p>
           {!n.isRead && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+          {isDigest && count !== undefined && (
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              — {count} task{count === 1 ? '' : 's'}{overdue ? `, ${overdue} overdue` : ''}
+            </span>
+          )}
           {taskTitle && (
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">— {taskTitle}</span>
           )}
@@ -342,7 +362,7 @@ function NotificationItem({ n, onMarkRead, onOpenTask }: {
       {/* Trailing: timestamp, plus arrow for task links or mark-read for others */}
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span className="text-[11px] text-muted-foreground">{formatDateTime(n.sentAt)}</span>
-        {isTaskLink && !isT1 ? (
+        {clickable && !isT1 ? (
           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40" />
         ) : !n.isRead && !isT1 ? (
           <button

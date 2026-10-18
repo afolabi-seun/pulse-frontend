@@ -30,8 +30,8 @@ const LEVEL_ACCENT: Record<EscalationLevel, string> = {
 /** The page's three groups, most urgent first. `param` is the group's value in the URL's `level` filter. */
 const GROUPS: { level: EscalationLevel; param: string; label: string; icon: React.ElementType; iconCls: string; iconBg: string; accent?: 'red' | 'yellow' }[] = [
   { level: 'Overdue', param: 'overdue',    label: 'Overdue',       icon: AlertCircle,   iconCls: 'text-red-500',    iconBg: 'bg-red-50 dark:bg-red-950/40',       accent: 'red' },
-  { level: 'TMinus1', param: 'tomorrow',   label: 'Due tomorrow',  icon: AlertTriangle, iconCls: 'text-amber-500',  iconBg: 'bg-amber-50 dark:bg-amber-950/40',   accent: 'yellow' },
-  { level: 'TMinus3', param: 'three-days', label: 'Due in 3 days', icon: Clock,         iconCls: 'text-yellow-500', iconBg: 'bg-yellow-50 dark:bg-yellow-950/40' },
+  { level: 'TMinus1', param: 'tomorrow',   label: 'Due within 1 day',  icon: AlertTriangle, iconCls: 'text-amber-500',  iconBg: 'bg-amber-50 dark:bg-amber-950/40',   accent: 'yellow' },
+  { level: 'TMinus3', param: 'three-days', label: 'Due within 3 days', icon: Clock,         iconCls: 'text-yellow-500', iconBg: 'bg-yellow-50 dark:bg-yellow-950/40' },
 ];
 
 function EscalationRow({ esc, assigneeName, onOpenTask }: {

@@ -6,6 +6,7 @@ import { buildHubConnection } from '../lib/signalr';
 import { notificationKeys } from '../api/notifications';
 import { taskKeys } from '../api/tasks';
 import { useAuth } from './useAuth';
+import { dueWording } from '../lib/dates';
 import type { NotificationDto, TaskDto } from '../types/api';
 
 function notificationTaskId(n: NotificationDto): string | undefined {
@@ -36,8 +37,11 @@ async function startWithRetry(
 }
 
 const KIND_LABEL: Record<string, string> = {
-  escalation_t3:      'Task escalation — due in 3 days',
-  escalation_t1:      'Task escalation — due tomorrow',
+  // The two early-warning stages are named for 3 days and 1 day out, but can fire with less time left, so their text comes from the task's real due
+  // date (see alertLabel); these are only the fallback when a notification carries none.
+  escalation_digest:  'Tasks need your attention — see Escalations',
+  escalation_t3:      'Task escalation — due soon',
+  escalation_t1:      'Task escalation — due soon',
   escalation_overdue: 'Task is now overdue',
   checkin_reminder:   'Check-in reminder',
   weekly_vitals_prompt:'Weekly vitals prompt',
@@ -50,6 +54,17 @@ const KIND_LABEL: Record<string, string> = {
   task_recalled:      'A task loaned to you has been recalled',
   executive_commented: 'An executive commented on your task',
 };
+
+/** The text of a live alert. The due-date warnings say how far away the date really is, from the notification's own due date. */
+export function alertLabel(n: NotificationDto): string {
+  if ((n.kind === 'escalation_t3' || n.kind === 'escalation_t1') && n.payload) {
+    try {
+      const when = dueWording(((JSON.parse(n.payload) as Record<string, unknown>)['dueDate'] as string | undefined) ?? null);
+      if (when) return `Task due ${when}`;
+    } catch { /* fall back to the generic text */ }
+  }
+  return KIND_LABEL[n.kind] ?? 'New notification';
+}
 
 export function useSignalR() {
   const qc = useQueryClient();
@@ -73,11 +88,13 @@ export function useSignalR() {
     conn.on('notification.received', (notification: NotificationDto) => {
       // Refresh notification inbox so badge count and list update immediately.
       qc.invalidateQueries({ queryKey: notificationKeys.all() });
-      const label  = KIND_LABEL[notification.kind] ?? 'New notification';
+      const label  = alertLabel(notification);
       const taskId = notificationTaskId(notification);
       toast(label, {
         duration: 6000,
-        action: taskId ? { label: 'View', onClick: () => navigate(`/tasks/${taskId}`) } : undefined,
+        action: taskId
+          ? { label: 'View', onClick: () => navigate(`/tasks/${taskId}`) }
+          : notification.kind === 'escalation_digest' ? { label: 'View', onClick: () => navigate('/escalations') } : undefined,
       });
     });
 
