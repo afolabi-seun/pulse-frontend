@@ -325,7 +325,11 @@ function PlanningPokerPanel({ taskId, canLead, currentUserId, hasDueDate, isAssi
                 <strong>{estimation!.submittedByName ?? 'the assignee'}</strong>, awaiting approval from{' '}
                 <strong>{estimation!.pendingApproverNames?.join(', ') || 'a department head'}</strong>.
               </p>
-              {estimation!.isEscalated && (
+              {estimation!.isEscalatedToPmo ? (
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-500">
+                  No response from the team lead or the department head — the PMO has been looped in too.
+                </p>
+              ) : estimation!.isEscalated && (
                 <p className="mt-1 text-xs text-amber-700 dark:text-amber-500">
                   No response from the team lead within the grace period — the department head has been looped in too.
                 </p>
