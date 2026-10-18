@@ -207,6 +207,9 @@ export interface TeamDto {
   department: string | null;
   /** Null when the caller can't see this team's roster (a department head viewing another department). */
   memberCount: number | null;
+  /** The department head who answers for this team (approvals, reminders). Null when none is named. */
+  headId: string | null;
+  headName: string | null;
 }
 
 export interface BaselineHistoryEntryDto {

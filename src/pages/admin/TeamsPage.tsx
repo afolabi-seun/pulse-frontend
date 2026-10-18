@@ -20,10 +20,17 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import type { EngineerDto, TeamDto } from '../../types/api';
+import type { EngineerDto, Role, TeamDto } from '../../types/api';
 
-interface CreateForm { name: string; teamLeadId: string; department: string; }
-interface EditForm   { name: string; teamLeadId: string; department: string; }
+// The roles that can be named as a team's head — the department-head roles.
+const HEAD_ROLES = new Set<Role>(['head_of_rd', 'head_of_product', 'head_of_design', 'head_of_pmo', 'head_of_functional', 'head_of_core_banking', 'head_of_infra_devops']);
+const headOptions = (engineers: EngineerDto[]) => [
+  { value: '', label: 'None (use the department label)' },
+  ...engineers.filter((e) => e.isActive && HEAD_ROLES.has(e.role)).map((e) => ({ value: e.id, label: e.name })),
+];
+
+interface CreateForm { name: string; teamLeadId: string; department: string; headId: string; }
+interface EditForm   { name: string; teamLeadId: string; department: string; headId: string; }
 
 function MembersDrawer({ team, members, onClose }: {
   team: TeamDto;
@@ -96,7 +103,7 @@ function TeamCard({ team, canManage, allEngineers }: { team: TeamDto; canManage:
   const { confirm, dialog } = useConfirm();
 
   const { register, control, handleSubmit, setError, reset, formState: { errors } } = useForm<EditForm>({
-    defaultValues: { name: team.name, teamLeadId: team.teamLeadId ?? '', department: team.department ?? '' },
+    defaultValues: { name: team.name, teamLeadId: team.teamLeadId ?? '', department: team.department ?? '', headId: team.headId ?? '' },
   });
 
   const members = allEngineers.filter((e) => e.teamId === team.id);
@@ -107,6 +114,8 @@ function TeamCard({ team, canManage, allEngineers }: { team: TeamDto; canManage:
     else                   body.clearTeamLead = true;
     if (values.department) body.department = values.department;
     else                   body.clearDepartment = true;
+    if (values.headId) body.headId = values.headId;
+    else               body.clearHead = true;
     updateTeam.mutate(body, {
       onSuccess: () => { toast.success('Team updated.'); setEditing(false); },
       onError:   (e) => applyServerErrors(e, setError),
@@ -158,6 +167,23 @@ function TeamCard({ team, canManage, allEngineers }: { team: TeamDto; canManage:
                 )}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label>Department head</Label>
+              <Controller
+                name="headId"
+                control={control}
+                render={({ field }) => (
+                  <SearchableSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Search department heads…"
+                    emptyLabel="No matching department heads"
+                    options={headOptions(allEngineers)}
+                  />
+                )}
+              />
+              <p className="text-xs text-muted-foreground">Who estimate approvals, PR approvals and paused-task reminders go to above the team lead. If left empty, every head in this team's department is used.</p>
+            </div>
           </div>
           <div className="flex gap-2 border-t border-border bg-muted/30 px-4 py-2.5">
             <Button size="sm" type="submit" loading={updateTeam.isPending}>Save</Button>
@@ -194,6 +220,14 @@ function TeamCard({ team, canManage, allEngineers }: { team: TeamDto; canManage:
               ? 'Lead hidden — another department'
               : team.teamLeadName ? `Lead: ${team.teamLeadName}` : 'No team lead assigned'}
           </p>
+          {team.memberCount !== null && team.headName && (
+            <p className="text-sm text-muted-foreground">Head: {team.headName}</p>
+          )}
+          {canManage && team.isActive && !team.headId && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-500" title="Approvals and reminders use every head in this team's department until one is named">
+              No head named
+            </p>
+          )}
         </div>
 
         <div className="flex items-center border-t border-border px-4 py-2.5">
@@ -255,6 +289,7 @@ export default function TeamsPage() {
         name:       values.name,
         teamLeadId: values.teamLeadId || undefined,
         department: values.department || undefined,
+        headId:     values.headId || undefined,
       },
       {
         onSuccess: () => { toast.success('Team created.'); reset(); setShowCreate(false); },
@@ -321,6 +356,23 @@ export default function TeamsPage() {
                     />
                   )}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Department head</Label>
+                <Controller
+                  name="headId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Search department heads…"
+                      emptyLabel="No matching department heads"
+                      options={headOptions(eng)}
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">Who estimate approvals, PR approvals and paused-task reminders go to above the team lead. If left empty, every head in this team's department is used.</p>
               </div>
             </div>
             <div className="flex gap-2 border-t border-border bg-muted/30 px-4 py-2.5">
