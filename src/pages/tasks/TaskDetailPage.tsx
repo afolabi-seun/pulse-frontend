@@ -4,6 +4,7 @@ import { useForm, Controller, type UseFormRegisterReturn } from 'react-hook-form
 import { toast } from 'sonner';
 import { AlertTriangle, Link2, X, Shuffle, FlaskConical, XCircle, Info, Undo2, Pause, Sparkles, UserPlus, ArrowLeftRight, Pencil, GitPullRequest } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import ProgressControl from '../../components/tasks/ProgressControl';
 import { useTask, useUpdateTask, useDeleteTask, useFlagBlocker, useClearBlocker, usePauseTask, useResumeTask, useReturnTaskToBacklog, usePreviewAssign, useAssignTask, useLoanTask, useRecallTask, useTaskDependencies, useAddDependency, useRemoveDependency, useTaskList, useSendToQa, useRecoverMissingQa, useQaSendCandidates, useProposeQaRejection, useConfirmQaRejection, useWithdrawQaRejection, useRespondToQaRejection, useMarkTaskDone, useGroomOwnTask, useAssigneeEditTask, useSubtasks, useAddSubtask, useToggleSubtask, useDeleteSubtask, useLoanSubtask, useRecallSubtask, useTaskMentionCandidates, useHandOffToFrontend, useHandOffToBackend, useHandoffCandidates, useRequestPrApproval, useApprovePrApproval, useRejectPrApproval, useReassignPrApprover } from '../../api/tasks';
 import { useEpicsByProject } from '../../api/epics';
 import { useSubmitFeedback } from '../../api/feedback';
@@ -1248,6 +1249,8 @@ export default function TaskDetailPage() {
             )}
             <PriorityBadge priority={task.priority} />
           </div>
+
+          {!task.isPersonal && !task.parentTaskId && <ProgressControl task={task} canSet={canAct} />}
 
           {task.description && (
             <div className="mt-4 border-t border-border pt-4">

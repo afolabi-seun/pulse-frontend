@@ -110,6 +110,13 @@ export default function EngineerDetailPage() {
         backgroundColor: accent(),
         borderRadius: 4,
       },
+      {
+        type: 'bar' as const,
+        label: 'Earned',
+        data: (throughput ?? []).map((w) => Math.round((w.pointsEarned ?? 0) * 100) / 100),
+        backgroundColor: 'rgb(16, 185, 129)',
+        borderRadius: 4,
+      },
       ...(weeklyBaseline !== null ? [{
         type: 'line' as const,
         label: 'Baseline (weekly)',
@@ -309,7 +316,7 @@ export default function EngineerDetailPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
           <p className="text-sm font-semibold text-foreground">Delivered points — last 6 weeks</p>
-          <span className="ml-auto text-xs text-muted-foreground">Counted when a task is marked Done</span>
+          <span className="ml-auto text-xs text-muted-foreground">Delivered: tasks marked Done · Earned: progress made, finished or not</span>
         </div>
         <CardContent className="p-4">
           {throughputLoading ? (

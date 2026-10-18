@@ -505,6 +505,7 @@ export default function ThresholdsPage() {
         escalationT3MinHours:   Number(values.escalationT3MinHours),
         escalationT1MinHours:   Number(values.escalationT1MinHours),
         qaLeadTimeDays:         Number(values.qaLeadTimeDays),
+        useProgressInWorkload:  !!values.useProgressInWorkload,
         pointScale:             scaleEntries,
         priorityScale:          priorityEntries,
       },
@@ -535,6 +536,25 @@ export default function ThresholdsPage() {
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <label className="flex items-start gap-3 text-sm" htmlFor="use-progress-in-workload">
+            <input
+              id="use-progress-in-workload"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-input"
+              disabled={!canEdit}
+              {...register('useProgressInWorkload')}
+            />
+            <span>
+              <span className="font-medium text-foreground">Count only the points still to do in workload</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                When on, a task that is 75% done weighs a quarter of its points in an engineer's workload and in the overwork signals, instead of all of them.
+                This changes workload and overwork figures across the organization, so it is off until you turn it on. Earned points are recorded either way.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <ThresholdCard
             icon={Activity}
