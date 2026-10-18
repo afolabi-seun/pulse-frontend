@@ -21,6 +21,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useCanCreateTasks } from '../hooks/useCanCreateTasks';
 import { useSearch } from '../api/search';
 import { cn } from '@/lib/utils';
 import type { Capability } from '../lib/auth';
@@ -33,6 +34,8 @@ interface CommandItem {
   to: string;
   cap?: Capability | Capability[];
   hideForHeads?: boolean;
+  /** Only for people who may create tasks (see useCanCreateTasks). */
+  needsTaskCreation?: boolean;
   keywords?: string;
 }
 
@@ -56,7 +59,7 @@ const ITEMS: CommandItem[] = [
   { id: 'check-in',       label: 'Submit Check-In',        group: 'Actions',  icon: ClipboardCheck,    to: '/check-in',      hideForHeads: true, keywords: 'daily standup' },
   { id: 'vitals',         label: 'Weekly Vitals',          group: 'Actions',  icon: Activity,          to: '/vitals',        keywords: 'mood survey morale pulse' },
   { id: 'new-feedback',   label: 'Submit Feedback',        group: 'Actions',  icon: MessageSquarePlus, to: '/feedback/new',  hideForHeads: true },
-  { id: 'new-task',       label: 'New Task',               group: 'Actions',  icon: Plus,            to: '/tasks/new',  keywords: 'create add' },
+  { id: 'new-task',       label: 'New Task',               group: 'Actions',  icon: Plus,            to: '/tasks/new',  needsTaskCreation: true, keywords: 'create add' },
   { id: 'checkin-status', label: 'Check-In Status',        group: 'Actions',  icon: ClipboardList,   to: '/check-in/status', cap: 'pm-or-above' },
   { id: 'checkin-history',label: 'Check-In History',       group: 'Actions',  icon: ClipboardList,   to: '/check-in/history', keywords: 'past previous' },
 ];
@@ -70,6 +73,7 @@ export default function CommandPalette({ open, onClose }: Props) {
   const navigate = useNavigate();
   const { allow } = useAuth();
   const isHead = allow('any-head');
+  const { canCreate: canCreateTasks } = useCanCreateTasks();
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +86,7 @@ export default function CommandPalette({ open, onClose }: Props) {
       const capOk = Array.isArray(item.cap) ? item.cap.some(allow) : allow(item.cap);
       if (!capOk) return false;
     }
+    if (item.needsTaskCreation && !canCreateTasks) return false;
     if (item.hideForHeads && isHead) return false;
     if (!q) return true;
     return (

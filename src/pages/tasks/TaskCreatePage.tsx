@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'sonner';
-import { CalendarDays, ChevronDown, FileText, Layers, Plus, UserCircle, Workflow } from 'lucide-react';
+import { CalendarDays, ChevronDown, FileText, Layers, ListChecks, Plus, UserCircle, Workflow } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useCreateTask } from '../../api/tasks';
 import { useProjectList, useMyProjects } from '../../api/projects';
 import { useEngineerList } from '../../api/engineers';
 import { useEpicsByProject } from '../../api/epics';
 import { useMeta } from '../../api/meta';
+import { useCanCreateTasks } from '../../hooks/useCanCreateTasks';
 import { useAuth } from '../../hooks/useAuth';
 import { applyServerErrors } from '../../lib/formErrors';
 import PriorityScaleGuide from '../../components/tasks/PriorityScaleGuide';
@@ -53,8 +55,11 @@ export default function TaskCreatePage() {
   // HR/Accountant can keep private to-dos in a project of their own (to log time against) instead of
   // picking a real project. Defaults on for them unless they arrived here from a specific project.
   const canPersonal = allow('personal-task-creator');
-  const [personal, setPersonal] = useState(canPersonal && !presetProjectId);
   const canAssignOthers = allow('team-lead-or-above');
+  const { canCreate } = useCanCreateTasks();
+  // HR and Accountant can only keep personal to-dos: real projects' tasks are created by the PMO, team leads and department heads.
+  const personalOnly = canPersonal && !canAssignOthers;
+  const [personal, setPersonal] = useState(canPersonal && (personalOnly || !presetProjectId));
   // Both start collapsed — External reference/Acceptance criteria and the whole Workflow section
   // are the fields least likely to be touched when creating a task (acceptance criteria in
   // particular is more often added later during grooming), so they're one click away rather than
@@ -131,11 +136,25 @@ export default function TaskCreatePage() {
     );
   });
 
+  // Someone who reaches this page by address without being allowed to create tasks is told who can, instead of filling in a form that will be refused.
+  if (!canCreate) {
+    return (
+      <div className="max-w-xl">
+        <PageHeader title="New task" />
+        <EmptyState
+          icon={ListChecks}
+          title="Your team lead adds tasks"
+          description="Tasks are created by the PMO, team leads and department heads, and assigned to you. You can add checklist items to a task you own."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl">
       <PageHeader title={personal ? 'New personal task' : 'New task'} />
 
-      {canPersonal && (
+      {canPersonal && !personalOnly && (
         <div className="mb-4 flex overflow-hidden rounded-md border border-input text-sm" role="group" aria-label="Task kind">
           {([false, true] as const).map((isPersonal) => (
             <button

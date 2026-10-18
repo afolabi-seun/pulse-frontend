@@ -6,6 +6,12 @@ export const metaKeys = {
   all: () => ['meta'] as const,
 };
 
+/** Whether velocity and performance count points earned in a period (the PMO's setting) rather than points on finished tasks. */
+export function useMeasuresInEarnedPoints(): boolean {
+  const { data } = useMeta();
+  return !!data?.measuresInEarnedPoints;
+}
+
 export function useMeta() {
   return useQuery({
     queryKey: metaKeys.all(),

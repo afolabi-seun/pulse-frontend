@@ -72,6 +72,13 @@ beforeEach(() => {
 });
 
 describe('PerformancePage — velocity', () => {
+  it('draws Delivered and Earned side by side on the weekly velocity chart', () => {
+    renderPage();
+    const labels = chartProps.flatMap((c) => c.data.datasets.map((d) => d.label));
+    expect(labels).toContain('Delivered');
+    expect(labels).toContain('Earned');
+  });
+
   it('measures delivered points against what the baseline expects over the window', () => {
     renderPage();
     const mine = screen.getByText('My performance').closest('section')!;
