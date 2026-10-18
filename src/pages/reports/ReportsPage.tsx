@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { weekLabel, isCurrentWeek, formatDate } from '../../lib/dates';
 import ProjectHealthDetail, { HealthLegend, HealthToggle, healthSummary } from '../../components/reports/ProjectHealthDetail';
+import BaselineNote from '../../components/reports/BaselineNote';
 
 const TEAM_PREVIEW = 5;
 
@@ -96,6 +97,7 @@ export default function ReportsPage() {
   return (
     <div className="max-w-6xl">
       <PageHeader title="Reports" />
+      <BaselineNote className="-mt-2 mb-4" />
 
       <FilterBar hasFilters={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo(''); }}>
         <FilterBar.Item label="From">

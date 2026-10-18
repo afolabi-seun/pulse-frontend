@@ -20,6 +20,7 @@ import HelpTooltip from '../components/ui/HelpTooltip';
 import { Pagination } from '../components/ui/Pagination';
 import { weeklyBaselinePoints } from '../lib/points';
 import type { PerformanceMetricsDto, ThroughputWeekDto } from '../types/api';
+import BaselineNote from '../components/reports/BaselineNote';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, BarController, LineElement, LineController, PointElement, Title, Tooltip, Legend);
 
@@ -359,6 +360,7 @@ export default function PerformancePage() {
   return (
     <div className="max-w-4xl space-y-8">
       <PageHeader title="Performance" description="Velocity, delivery, quality, and consistency over a rolling window." />
+      <BaselineNote className="-mt-2 mb-4" />
       <MyPerformanceSection />
       {(allow('team-lead-or-above') || allow('executive-read') || allow('hr-read')) && <TeamPerformanceSection />}
       {(allow('pm-or-above') || allow('executive-read') || allow('hr-read')) && <ProjectPerformanceSection />}

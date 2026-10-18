@@ -134,3 +134,16 @@ export function getWeekStart(iso: string): string {
 export function isCurrentWeek(weekOfIso: string): boolean {
   return weekOfIso === getWeekStart(todayIso());
 }
+
+/** Weekdays elapsed since a date — Monday to Friday after that day, up to and including today. Matches the server's BusinessDays.Between. */
+export function workingDaysSince(iso: string | null, today: string = todayIso()): number {
+  if (!iso) return 0;
+  const from = parseDateOnly(iso.slice(0, 10));
+  const to = parseDateOnly(today);
+  let count = 0;
+  for (const d = new Date(from); d < to;) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) count++;
+  }
+  return count;
+}

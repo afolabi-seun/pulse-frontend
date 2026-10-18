@@ -52,3 +52,33 @@ describe('TimerBar draft selection', () => {
     expect(JSON.parse(sessionStorage.getItem(KEY)!).taskId).toBe('t1');
   });
 });
+
+describe('TimerBar: time is only logged against estimated work', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  const unestimated = { id: 'b0', title: 'Triage later', taskKey: 'APP-9', status: 'backlog', points: 0 } as TaskDto;
+  const estimatedBacklog = { id: 'b3', title: 'Groomed item', taskKey: 'APP-10', status: 'backlog', points: 3 } as TaskDto;
+
+  it('does not offer an unestimated Backlog task, and says why', () => {
+    sessionStorage.setItem(KEY, JSON.stringify({ category: 'task', taskSource: 'mine', taskId: '', subtaskId: '', unclaimedProjectId: '' }));
+    renderWithProviders(<TimerBar openTasks={[task, unestimated]} myProjects={[]} />);
+
+    expect(screen.getByText(/1 of your tasks has no estimate yet/)).toBeInTheDocument();
+  });
+
+  it('drops a restored selection of a task that has no estimate', async () => {
+    seed('b0');
+    renderWithProviders(<TimerBar openTasks={[task, unestimated]} myProjects={[]} />);
+
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem(KEY)!).taskId).toBe(''));
+  });
+
+  it('still offers an estimated Backlog task', () => {
+    seed('b3');
+    renderWithProviders(<TimerBar openTasks={[estimatedBacklog]} myProjects={[]} />);
+
+    expect(screen.getByDisplayValue('APP-10 — Groomed item')).toBeInTheDocument();
+    expect(screen.queryByText(/no estimate yet/)).not.toBeInTheDocument();
+  });
+});
+
