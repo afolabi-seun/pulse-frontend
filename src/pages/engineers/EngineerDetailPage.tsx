@@ -17,7 +17,7 @@ import {
 import { useTeamList } from '../../api/teams';
 import { WorkloadFigures } from '../../components/workload/WorkloadFigures';
 import TaskPreviewDrawer from '../../components/tasks/TaskPreviewDrawer';
-import EngineerTasksCard from '../../components/engineers/EngineerTasksCard';
+import TaskTabsCard from '../../components/tasks/TaskTabsCard';
 import PageHeader from '../../components/layout/PageHeader';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -199,7 +199,7 @@ export default function EngineerDetailPage() {
 
       <TimeLoggedCard engineerId={id!} />
 
-      <EngineerTasksCard engineerId={id!} onPreview={setPreviewTaskId} />
+      <TaskTabsCard assigneeId={id!} onPreview={setPreviewTaskId} />
 
       {/* Velocity trend */}
       <Card className="mb-5 overflow-hidden">

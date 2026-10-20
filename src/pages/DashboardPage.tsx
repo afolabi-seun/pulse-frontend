@@ -9,8 +9,7 @@ import { Activity, AlertCircle, AlertTriangle, Building2, Calendar, CheckSquare,
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCurrentRole } from '../hooks/useCurrentRole';
-import { useCursorPagination } from '../hooks/useCursorPagination';
-import { useTaskList, useAllTasks, useQaQueue, useMyFrontendHandoffs } from '../api/tasks';
+import { useAllTasks, useQaQueue, useMyFrontendHandoffs } from '../api/tasks';
 import { useEngineer, useEngineerSignals } from '../api/engineers';
 import { useCheckInHistory, useStandupSummary } from '../api/checkIns';
 import { useTimeEntriesInRange } from '../api/timeEntries';
@@ -22,7 +21,7 @@ import { useSprintList } from '../api/sprints';
 import { useEscalations } from '../api/escalations';
 import TaskPreviewDrawer from '../components/tasks/TaskPreviewDrawer';
 import Badge from '../components/ui/Badge';
-import { Pagination } from '../components/ui/Pagination';
+import TaskTabsCard from '../components/tasks/TaskTabsCard';
 import { DashboardSkeleton, Skeleton } from '../components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import ErrorState from '../components/ui/ErrorState';
@@ -31,8 +30,8 @@ import StatCard, { STAT_GRID } from '../components/ui/StatCard';
 import DashboardBanner, { type BannerHeadline } from '../components/dashboard/DashboardBanner';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn, stripHtml } from '@/lib/utils';
-import { formatDate, daysLate, todayIso, toIsoDate, isCurrentWeek } from '../lib/dates';
-import type { FollowedProjectDto, MyProjectDto, PerformanceMetricsDto, ProjectHealthDto, TaskDto, TaskStatus } from '../types/api';
+import { formatDate, todayIso, toIsoDate, isCurrentWeek } from '../lib/dates';
+import type { FollowedProjectDto, MyProjectDto, PerformanceMetricsDto, ProjectHealthDto, TaskDto } from '../types/api';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Filler);
 
@@ -66,7 +65,6 @@ const HEALTH_LABEL: Record<ProjectHealthDto['health'], string> = {
   Critical: 'Critical',
 };
 
-const MY_TASKS_PAGE_SIZE = 10;
 
 /** Collapse state for a Dashboard section, persisted per-browser so it survives a reload. */
 function usePersistedCollapse(key: string, defaultExpanded: boolean) {
@@ -91,15 +89,6 @@ function usePersistedCollapse(key: string, defaultExpanded: boolean) {
 function formatPct(value: number | null): string {
   return value === null ? '—' : `${Math.round(value * 100)}%`;
 }
-
-const STATUS_VARIANT: Record<TaskStatus, 'green' | 'red' | 'gray' | 'yellow'> = {
-  backlog: 'gray',
-  active:  'green',
-  blocked: 'red',
-  inQa:    'gray',
-  done:    'gray',
-  paused:  'yellow',
-};
 
 export default function DashboardPage() {
   const accent = useAccentColor();
@@ -170,18 +159,6 @@ export default function DashboardPage() {
   const weekEnd     = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   const { data: weekTimeEntries } = useTimeEntriesInRange(toIsoDate(weekStart), toIsoDate(weekEnd), id, canLogTime);
-
-  const { cursor: myTasksCursor, hasPrev: myTasksHasPrev, pageNumber: myTasksPage, goNext: myTasksGoNext, goPrev: myTasksGoPrev, reset: myTasksCursorReset } = useCursorPagination();
-  // Finishing a task removes it from this list by default (it's meant to answer "what's still on
-  // my plate"), which reads as the task having vanished with no trace right after completing it —
-  // this toggle is the escape hatch back to "show me what I just did".
-  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
-  const { data: myTasks, isLoading: myTasksLoading } = useTaskList({
-    assigneeId: id,
-    excludeDone: !showCompletedTasks,
-    limit: MY_TASKS_PAGE_SIZE,
-    cursor: myTasksCursor,
-  });
 
   const activeTasks   = stats;
   const blockedTasks  = activeTasks.filter((t) => t.status === 'blocked');
@@ -787,100 +764,29 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* My tasks — sorted by due date, 10 at a time, across every project. Hidden for PMO,
-              who carries no personal task queue. */}
+          {/* My tasks — Current (Active + Blocked) and History (everything else, filterable) tabs, across every project.
+              Hidden for PMO, who carries no personal task queue. */}
           {!hidePersonal && (
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-                <CheckSquare className="h-4 w-4 text-primary" />
-              </div>
-              <h2 className="text-sm font-semibold text-foreground">My tasks</h2>
-              {myTasksExpanded && (
-                <button
-                  type="button"
-                  onClick={() => { setShowCompletedTasks((v) => !v); myTasksCursorReset(); }}
-                  className="ml-auto text-xs text-muted-foreground hover:text-primary hover:underline"
-                >
-                  {showCompletedTasks ? 'Hide completed' : 'Show completed'}
-                </button>
-              )}
-              {myTasksExpanded && (
-                <Link to="/tasks" className="text-xs text-primary hover:underline">View all</Link>
-              )}
-              <button
-                type="button"
-                onClick={toggleMyTasks}
-                className={cn('rounded-md p-1 text-muted-foreground hover:bg-muted', !myTasksExpanded && 'ml-auto')}
-                aria-label={myTasksExpanded ? 'Collapse My tasks' : 'Expand My tasks'}
-              >
-                {myTasksExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-            </div>
-            {myTasksExpanded && (
-            <div className="p-0">
-              {myTasksLoading ? (
-                <div className="space-y-0 divide-y divide-border">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="px-4 py-2.5"><Skeleton className="h-10 w-full" /></div>
-                  ))}
-                </div>
-              ) : (myTasks?.items.length ?? 0) === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  {showCompletedTasks ? 'No tasks yet.' : 'No active tasks.'}
-                </p>
-              ) : (
-                <ul role="list" className="divide-y divide-border">
-                  {myTasks!.items.map((task) => {
-                    const days = daysLate(task);
-                    const isDone = task.status === 'done';
-                    return (
-                      <li key={task.id} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
-                        <div className="min-w-0 flex-1">
-                          <button
-                            type="button"
-                            onClick={() => setPreviewTaskId(task.id)}
-                            className={cn(
-                              'block w-full truncate text-left text-sm font-medium hover:text-primary',
-                              isDone ? 'text-muted-foreground line-through' : 'text-foreground',
-                            )}
-                          >
-                            {task.taskKey && <span className="font-mono text-xs text-muted-foreground">{task.taskKey} </span>}
-                            {task.title}
-                          </button>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {task.projectName && <span>{task.projectName} · </span>}
-                            {isDone && task.actualEndDate ? `Completed ${formatDate(task.actualEndDate)}` : `Due ${formatDate(task.dueDate)}`}
-                            {!isDone && days !== null && days <= 1 && (
-                              <span className="ml-1.5 font-medium text-red-600">
-                                {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? '· due today' : '· due tomorrow'}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className="font-mono text-xs tabular-nums text-muted-foreground">{task.points}pt</span>
-                          <Badge label={task.status} variant={STATUS_VARIANT[task.status]} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {!myTasksLoading && (myTasksHasPrev || myTasks?.hasMore) && (
-                <div className="px-4 pb-3">
-                  <Pagination
-                    page={myTasksPage}
-                    hasPrev={myTasksHasPrev}
-                    hasMore={myTasks?.hasMore ?? false}
-                    onPrev={myTasksGoPrev}
-                    onNext={() => { if (myTasks?.nextCursor) myTasksGoNext(myTasks.nextCursor); }}
-                  />
-                </div>
-              )}
-            </div>
-            )}
-          </Card>
+            <TaskTabsCard
+              assigneeId={id}
+              title="My tasks"
+              compact
+              collapsed={!myTasksExpanded}
+              onPreview={setPreviewTaskId}
+              headerExtra={
+                <>
+                  {myTasksExpanded && <Link to="/tasks" className="text-xs text-primary hover:underline">View all</Link>}
+                  <button
+                    type="button"
+                    onClick={toggleMyTasks}
+                    className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                    aria-label={myTasksExpanded ? 'Collapse My tasks' : 'Expand My tasks'}
+                  >
+                    {myTasksExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </>
+              }
+            />
           )}
 
           {/* My projects — engineers and team leads only (PMs+ manage via the Projects page;
