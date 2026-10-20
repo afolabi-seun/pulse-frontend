@@ -19,6 +19,11 @@ export interface TaskListParams {
   noAssignee?: boolean;
   sortBy?: 'title' | 'status' | 'dueDate' | 'actualEndDate' | 'points';
   sortDirection?: 'asc' | 'desc';
+  /** Comma-separated statuses to keep, e.g. 'active,blocked'. */
+  statuses?: string;
+  /** A task's completion date when it is Done, its due date otherwise (undated unfinished work always stays in). yyyy-MM-dd. */
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface CreateTaskRequest {

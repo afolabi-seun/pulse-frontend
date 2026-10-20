@@ -7,7 +7,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend,
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
-import { Activity, CheckSquare, Clock, History, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Activity, Clock, History, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
   useEngineer, useUpdateEngineer,
@@ -15,14 +15,12 @@ import {
   useBaselineHistory, useEngineerThroughput,
 } from '../../api/engineers';
 import { useTeamList } from '../../api/teams';
-import { useTaskList } from '../../api/tasks';
-import { useCursorPagination } from '../../hooks/useCursorPagination';
 import { WorkloadFigures } from '../../components/workload/WorkloadFigures';
 import TaskPreviewDrawer from '../../components/tasks/TaskPreviewDrawer';
+import EngineerTasksCard from '../../components/engineers/EngineerTasksCard';
 import PageHeader from '../../components/layout/PageHeader';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
-import { Pagination } from '../../components/ui/Pagination';
 import { DetailPageSkeleton, Skeleton } from '@/components/ui/skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,11 +29,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn, hslVar } from '@/lib/utils';
 import { weeklyBaselinePoints } from '../../lib/points';
-import { formatDate, formatDateTime, daysLate, getWeekStart, parseDateOnly, toIsoDate, todayIso, workingDaysSince } from '../../lib/dates';
+import { formatDate, formatDateTime, getWeekStart, parseDateOnly, toIsoDate, todayIso } from '../../lib/dates';
 import { formatHours, sumHours } from '../../lib/hours';
 import { useEngineerTimeActivity } from '../../api/timeEntries';
-import type { EngineerTimeActivityDto, TaskDto } from '../../types/api';
-import { STATUS_VARIANT, STATUS_LABEL } from '../../lib/taskStatus';
+import type { EngineerTimeActivityDto } from '../../types/api';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -55,14 +52,6 @@ export default function EngineerDetailPage() {
   const { data: overrides }       = useEngineerOverrides(id!);
   const { data: baselineHistory } = useBaselineHistory(id!, allow('any-head') || allow('pmo-only'));
   const { data: teams }           = useTeamList();
-  const [showCompletedTasks, setShowCompletedTasks] = useState(false);
-  // Was a flat, unpaginated 50-item fetch — an engineer with more than 50 matching tasks had the
-  // rest silently invisible here with no indication more existed, and since Active-status tasks
-  // sort first, enough of those alone could push every Done task out of the window even with
-  // "Show completed" on. Cursor pagination (same pattern as the Dashboard's "My tasks" widget)
-  // fixes both: nothing is ever truly unreachable, just a page turn away.
-  const { cursor: tasksCursor, hasPrev: tasksHasPrev, pageNumber: tasksPage, goNext: tasksGoNext, goPrev: tasksGoPrev, reset: tasksCursorReset } = useCursorPagination();
-  const { data: activeTasks, isLoading: tasksLoading } = useTaskList({ assigneeId: id, excludeDone: !showCompletedTasks, limit: 50, cursor: tasksCursor });
   const { data: throughput, isLoading: throughputLoading } = useEngineerThroughput(id!);
   const updateEngineer = useUpdateEngineer(id!);
   const createOverride = useCreateOverride(id!);
@@ -136,52 +125,7 @@ export default function EngineerDetailPage() {
     { label: 'Stale in-progress', signal: signals.staleInProgress },
   ] : [];
 
-  const taskItems = activeTasks?.items ?? [];
-  const counted = taskItems.filter((t) => t.status === 'active' || t.status === 'blocked');
-  const notCounted = taskItems.filter((t) => !(t.status === 'active' || t.status === 'blocked'));
-
   const engineerTeam = teams?.find((t) => t.id === engineer?.teamId);
-
-  const renderTask = (task: TaskDto) => {
-    const days = daysLate(task);
-    const isDone = task.status === 'done';
-    return (
-        <li key={task.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
-          <div className="min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setPreviewTaskId(task.id)}
-              className={cn(
-                'block w-full truncate text-left text-sm font-medium hover:text-primary',
-                isDone ? 'text-muted-foreground line-through' : 'text-foreground',
-              )}
-            >
-              {task.taskKey && <span className="font-mono text-xs text-muted-foreground">{task.taskKey} </span>}
-              {task.title}
-            </button>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {task.projectName && <span>{task.projectName} · </span>}
-              {isDone && task.actualEndDate ? `Completed ${formatDate(task.actualEndDate)}` : `Due ${formatDate(task.dueDate)}`}
-              {task.status === 'paused' && task.pausedAt && (
-                <span className="ml-1.5 font-medium text-amber-600">· paused {workingDaysSince(task.pausedAt)} working days</span>
-              )}
-              {task.status === 'backlog' && !(task.points > 0) && (
-                <span className="ml-1.5 font-medium text-amber-600">· needs an estimate before time can be logged</span>
-              )}
-              {!isDone && days !== null && days <= 1 && (
-                <span className="ml-1.5 font-medium text-red-600">
-                  {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? '· due today' : '· due tomorrow'}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="font-mono text-xs tabular-nums text-muted-foreground">{task.points}pt</span>
-            <Badge label={STATUS_LABEL[task.status]} variant={STATUS_VARIANT[task.status]} />
-          </div>
-        </li>
-    );
-  };
 
   return (
     <div className="max-w-3xl">
@@ -255,59 +199,7 @@ export default function EngineerDetailPage() {
 
       <TimeLoggedCard engineerId={id!} />
 
-      {/* Active tasks */}
-      <Card className="mb-5 overflow-hidden">
-        <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-            <CheckSquare className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-sm font-semibold text-foreground">Active tasks</p>
-          <button
-            type="button"
-            onClick={() => { setShowCompletedTasks((v) => !v); tasksCursorReset(); }}
-            className="ml-auto text-xs text-muted-foreground hover:text-primary hover:underline"
-          >
-            {showCompletedTasks ? 'Hide completed' : 'Show completed'}
-          </button>
-        </div>
-        {tasksLoading ? (
-          <div className="space-y-0 divide-y divide-border">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="px-4 py-2.5"><Skeleton className="h-10 w-full" /></div>
-            ))}
-          </div>
-        ) : (activeTasks?.items.length ?? 0) === 0 ? (
-          <p className="px-5 py-6 text-center text-sm text-muted-foreground">
-            {showCompletedTasks ? 'No tasks yet.' : 'No active tasks.'}
-          </p>
-        ) : (
-          <>
-            {notCounted.length > 0 && counted.length > 0 && (
-              <p className="border-b border-border bg-muted/30 px-5 py-1.5 text-xs font-medium text-muted-foreground">Counts toward workload</p>
-            )}
-            {counted.length > 0 && <ul role="list" className="divide-y divide-border">{counted.map(renderTask)}</ul>}
-            {notCounted.length > 0 && (
-              <>
-                <p className="border-y border-border bg-muted/30 px-5 py-1.5 text-xs font-medium text-muted-foreground">
-                  Not counted in workload <span className="font-normal">— Backlog, paused and in-QA work is left out of the figure above</span>
-                </p>
-                <ul role="list" className="divide-y divide-border">{notCounted.map(renderTask)}</ul>
-              </>
-            )}
-          </>
-        )}
-        {!tasksLoading && (tasksHasPrev || activeTasks?.hasMore) && (
-          <div className="px-4 pb-3">
-            <Pagination
-              page={tasksPage}
-              hasPrev={tasksHasPrev}
-              hasMore={activeTasks?.hasMore ?? false}
-              onPrev={tasksGoPrev}
-              onNext={() => { if (activeTasks?.nextCursor) tasksGoNext(activeTasks.nextCursor); }}
-            />
-          </div>
-        )}
-      </Card>
+      <EngineerTasksCard engineerId={id!} onPreview={setPreviewTaskId} />
 
       {/* Velocity trend */}
       <Card className="mb-5 overflow-hidden">
