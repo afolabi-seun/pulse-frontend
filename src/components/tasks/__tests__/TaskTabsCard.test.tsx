@@ -179,6 +179,26 @@ describe('TaskTabsCard', () => {
     expect(screen.queryByRole('button', { name: 'From reporting start' })).not.toBeInTheDocument();
   });
 
+  it('includes finished tasks from before the reporting start date only when the dates reach back past it', async () => {
+    mocks.baseline.mockReturnValue(isoDaysAgo(5));
+    show();
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+    expect(historyCall()!.includeBeforeReportingStart).toBeUndefined(); // opens at the start date
+
+    await userEvent.click(screen.getByRole('button', { name: 'All time' }));
+
+    expect(historyCall()!.includeBeforeReportingStart).toBe(true);
+  });
+
+  it('never asks to include earlier tasks when there is no reporting start date', async () => {
+    mocks.baseline.mockReturnValue(null);
+    show();
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+    await userEvent.click(screen.getByRole('button', { name: 'All time' }));
+
+    expect(historyCall()!.includeBeforeReportingStart).toBeUndefined();
+  });
+
   it('says how many working days a task has been paused', async () => {
     show();
     await userEvent.click(screen.getByRole('tab', { name: 'History' }));

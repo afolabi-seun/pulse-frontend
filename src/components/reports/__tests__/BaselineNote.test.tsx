@@ -27,4 +27,19 @@ describe('BaselineNote', () => {
 
     expect(container.querySelector('p')).toBeNull();
   });
+
+  it('says a task list hides finished tasks from before the date, rather than describing report data', () => {
+    baseline.mockReturnValue({ data: '2026-10-01' });
+    renderWithProviders(<BaselineNote about="tasks" />);
+
+    expect(screen.getByText(/Finished tasks completed before .*2026.* are hidden/)).toBeInTheDocument();
+    expect(screen.queryByText(/Showing data from/)).not.toBeInTheDocument();
+  });
+
+  it('says nothing about hidden tasks when there is no baseline', () => {
+    baseline.mockReturnValue({ data: null });
+    const { container } = renderWithProviders(<BaselineNote about="tasks" />);
+
+    expect(container.querySelector('p')).toBeNull();
+  });
 });
