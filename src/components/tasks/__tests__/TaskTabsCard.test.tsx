@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import EngineerTasksCard from '../EngineerTasksCard';
+import TaskTabsCard from '../TaskTabsCard';
 import { renderWithProviders } from '../../../test/renderWithProviders';
 import type { TaskDto } from '../../../types/api';
 
@@ -30,7 +30,7 @@ const lastCall = (predicate: (p: Record<string, unknown>) => boolean) =>
 const historyCall = () => lastCall((p) => String(p.statuses).includes('done'));
 
 function show() {
-  return renderWithProviders(<EngineerTasksCard engineerId="eng-1" onPreview={vi.fn()} />, { initialEntries: ['/engineers/eng-1'] });
+  return renderWithProviders(<TaskTabsCard assigneeId="eng-1" onPreview={vi.fn()} />, { initialEntries: ['/engineers/eng-1'] });
 }
 
 const sample = [
@@ -42,7 +42,7 @@ const sample = [
   task({ id: 'f', title: 'Shipped', status: 'done', actualEndDate: '2026-10-10' }),
 ];
 
-describe('EngineerTasksCard', () => {
+describe('TaskTabsCard', () => {
   beforeEach(() => {
     mocks.tasks.mockReset();
     mocks.baseline.mockReturnValue(null);

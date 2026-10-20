@@ -29,12 +29,21 @@ function daysAgoIso(days: number): string {
 }
 
 interface Props {
-  engineerId: string;
+  /** Whose tasks. */
+  assigneeId: string;
   onPreview: (taskId: string) => void;
+  /** A heading before the tabs (the dashboard's "My tasks"); the engineer page needs none. */
+  title?: string;
+  /** Right-aligned header content, e.g. a "View all" link or a collapse button. */
+  headerExtra?: React.ReactNode;
+  /** Hides the body and stops fetching, for a collapsible card. */
+  collapsed?: boolean;
+  /** Tighter rows, for the dashboard. */
+  compact?: boolean;
 }
 
-/** An engineer's tasks in two tabs: what they are working on now (Current), and everything else — finished, in QA, paused, backlog — with filters (History). */
-export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
+/** A person's tasks in two tabs: what they are working on now (Current), and everything else — finished, in QA, paused, backlog — with filters (History). */
+export default function TaskTabsCard({ assigneeId, onPreview, title, headerExtra, collapsed = false, compact = false }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab: Tab = searchParams.get('tasksTab') === 'history' ? 'history' : 'current';
 
@@ -58,12 +67,12 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
   const includesDone = historyStatuses.includes('done');
 
   const { data: currentTasks, isLoading: currentLoading } = useTaskList(
-    { assigneeId: engineerId, statuses: CURRENT_STATUSES, limit: 50, cursor: current.cursor },
-    tab === 'current',
+    { assigneeId, statuses: CURRENT_STATUSES, limit: 50, cursor: current.cursor },
+    tab === 'current' && !collapsed,
   );
   const { data: historyTasks, isLoading: historyLoading } = useTaskList(
     {
-      assigneeId: engineerId,
+      assigneeId,
       statuses: historyStatuses.map((s) => s.toLowerCase()).join(','),
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
@@ -73,12 +82,12 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
       limit: 50,
       cursor: history.cursor,
     },
-    tab === 'history',
+    tab === 'history' && !collapsed,
   );
   // What the Current tab leaves out, so it can say so rather than hiding it. Capped at one page: a count past it reads "100+".
   const { data: leftOut } = useTaskList(
-    { assigneeId: engineerId, statuses: LEFT_OUT_STATUSES.map((s) => s.toLowerCase()).join(','), limit: 100 },
-    tab === 'current',
+    { assigneeId, statuses: LEFT_OUT_STATUSES.map((s) => s.toLowerCase()).join(','), limit: 100 },
+    tab === 'current' && !collapsed,
   );
 
   const toggleStatus = (status: TaskStatus) => {
@@ -98,7 +107,7 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
     const days = daysLate(task);
     const isDone = task.status === 'done';
     return (
-      <li key={task.id} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40">
+      <li key={task.id} className={cn('flex items-center gap-3 transition-colors hover:bg-muted/40', compact ? 'px-4 py-2.5' : 'px-5 py-3')}>
         <div className="min-w-0 flex-1">
           <button
             type="button"
@@ -158,18 +167,22 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
   const items = list?.items ?? [];
 
   return (
-    <Card className="mb-5 overflow-hidden">
+    <Card className={cn('overflow-hidden', !compact && 'mb-5')}>
       <div className="flex items-center gap-2.5 border-b border-border px-4">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
           <CheckSquare className="h-4 w-4 text-primary" />
         </div>
-        <div role="tablist" aria-label="Tasks" className="flex items-center gap-1">
-          {tabButton('current', 'Current')}
-          {tabButton('history', 'History')}
-        </div>
+        {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
+        {!collapsed && (
+          <div role="tablist" aria-label="Tasks" className="flex items-center gap-1">
+            {tabButton('current', 'Current')}
+            {tabButton('history', 'History')}
+          </div>
+        )}
+        {headerExtra && <div className="ml-auto flex items-center gap-2 py-2">{headerExtra}</div>}
       </div>
 
-      {tab === 'history' && (
+      {!collapsed && tab === 'history' && (
         <div className="space-y-2 border-b border-border bg-muted/30 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Status">
             {HISTORY_STATUSES.map((s) => {
@@ -223,6 +236,7 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
         </div>
       )}
 
+      {!collapsed && (
       <div role="tabpanel" id="engineer-tasks-panel" aria-labelledby={`engineer-tasks-tab-${tab}`}>
         {loading ? (
           <div className="space-y-0 divide-y divide-border">
@@ -257,6 +271,7 @@ export default function EngineerTasksCard({ engineerId, onPreview }: Props) {
           </div>
         )}
       </div>
+      )}
     </Card>
   );
 }

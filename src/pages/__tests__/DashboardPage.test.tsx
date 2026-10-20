@@ -21,6 +21,7 @@ const mockPmoReport = vi.hoisted(() => vi.fn());
 vi.mock('../../api/reports', () => ({
   usePmoReport: () => mockPmoReport(),
   useOrgTrend:  () => ({ data: undefined, isLoading: false }),
+  useReportingBaseline: () => ({ data: null }),
 }));
 
 const mockOrganization = vi.hoisted(() => vi.fn());
@@ -127,17 +128,16 @@ describe('DashboardPage', () => {
     expect(screen.getByText('8 / 20 pts')).toBeInTheDocument();
   });
 
-  it('reveals completed tasks in My tasks only after toggling "Show completed"', () => {
-    // Finishing a task removes it from this list by default — the toggle is the escape hatch
-    // back to "show me what I just did" instead of it looking like the task vanished.
+  it('keeps finished work off My tasks until the History tab is opened', () => {
+    // Finishing a task takes it off the Current tab — History is the way back to "show me what I just did",
+    // so the task does not look like it vanished.
     vi.mocked(tasksApi.useTaskList).mockImplementation((params: any) => ({
       data: {
-        items: params.excludeDone
-          ? [{ id: 't1', title: 'Build login page', points: 5, status: 'active', dueDate: '2026-07-01' }]
-          : [
-              { id: 't1', title: 'Build login page', points: 5, status: 'active', dueDate: '2026-07-01' },
-              { id: 't2', title: 'Ship the changelog', points: 2, status: 'done', dueDate: '2026-06-20', actualEndDate: '2026-06-19' },
-            ],
+        items: String(params.statuses).includes('done')
+          ? [{ id: 't2', title: 'Ship the changelog', points: 2, status: 'done', dueDate: '2026-06-20', actualEndDate: '2026-06-19' }]
+          : [{ id: 't1', title: 'Build login page', points: 5, status: 'active', dueDate: '2026-07-01' }],
+        hasMore: false,
+        nextCursor: null,
       },
       isLoading: false,
       error:     null,
@@ -146,12 +146,21 @@ describe('DashboardPage', () => {
 
     renderWithProviders(<DashboardPage />);
 
+    expect(screen.getByText('Build login page')).toBeInTheDocument();
     expect(screen.queryByText('Ship the changelog')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Show completed'));
+    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
 
     expect(screen.getByText('Ship the changelog')).toBeInTheDocument();
     expect(screen.getByText(/Completed/)).toBeInTheDocument();
+  });
+
+  it("asks only for the signed-in engineer's own tasks on My tasks", () => {
+    renderWithProviders(<DashboardPage />);
+
+    const calls = vi.mocked(tasksApi.useTaskList).mock.calls.map((c) => c[0] as any);
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every((p) => p.assigneeId === 'eng-1')).toBe(true);
   });
 
   it('shows check-in nudge when not checked in today', () => {

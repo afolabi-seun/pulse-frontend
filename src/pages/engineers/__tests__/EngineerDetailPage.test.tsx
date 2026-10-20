@@ -27,7 +27,7 @@ vi.mock('../../../api/teams', () => ({
       department: 'Engineering', memberCount: 6, teamLeadId: 'l', headId: 'h' } satisfies Partial<TeamDto>],
   }),
 }));
-vi.mock('../../../components/engineers/EngineerTasksCard', () => ({ default: () => <div data-testid="tasks-card" /> }));
+vi.mock('../../../components/tasks/TaskTabsCard', () => ({ default: () => <div data-testid="tasks-card" /> }));
 vi.mock('../../../api/timeEntries', () => ({ useEngineerTimeActivity: (...args: unknown[]) => mocks.activity(...args) }));
 vi.mock('react-chartjs-2', () => ({ Chart: () => <div data-testid="chart" /> }));
 vi.mock('../../../components/tasks/TaskPreviewDrawer', () => ({ default: () => null }));
