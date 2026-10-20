@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import TaskTabsCard from '../TaskTabsCard';
 import { renderWithProviders } from '../../../test/renderWithProviders';
+import { toIsoDate } from '../../../lib/dates';
 import type { TaskDto } from '../../../types/api';
 
 const mocks = vi.hoisted(() => ({ tasks: vi.fn(), baseline: vi.fn() }));
@@ -125,14 +126,50 @@ describe('TaskTabsCard', () => {
     expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument();
   });
 
+  const isoDaysAgo = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return toIsoDate(d);
+  };
+
   it('offers From reporting start only when a baseline is set, and uses it', async () => {
-    mocks.baseline.mockReturnValue('2026-10-01');
+    mocks.baseline.mockReturnValue(isoDaysAgo(90));
     show();
     await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+    expect(historyCall()!.dateFrom).toBe(isoDaysAgo(30)); // the default, since the baseline is older than that
 
     await userEvent.click(screen.getByRole('button', { name: 'From reporting start' }));
 
-    expect(historyCall()!.dateFrom).toBe('2026-10-01');
+    expect(historyCall()!.dateFrom).toBe(isoDaysAgo(90));
+  });
+
+  it('opens History at the reporting start date when that is later than 30 days ago', async () => {
+    mocks.baseline.mockReturnValue(isoDaysAgo(5));
+    show();
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    expect(historyCall()!.dateFrom).toBe(isoDaysAgo(5));
+    expect(screen.queryByRole('button', { name: 'Reset' })).not.toBeInTheDocument(); // the default is not a change
+  });
+
+  it('opens History 30 days back when the reporting start date is older, or there is none', async () => {
+    mocks.baseline.mockReturnValue(null);
+    show();
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    expect(historyCall()!.dateFrom).toBe(isoDaysAgo(30));
+  });
+
+  it('lets All time go past the reporting start date, and Reset returns to it', async () => {
+    mocks.baseline.mockReturnValue(isoDaysAgo(5));
+    show();
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'All time' }));
+    expect(historyCall()!.dateFrom).toBeUndefined();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(historyCall()!.dateFrom).toBe(isoDaysAgo(5));
   });
 
   it('does not offer From reporting start without a baseline', async () => {
