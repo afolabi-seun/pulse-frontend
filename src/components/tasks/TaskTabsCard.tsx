@@ -52,9 +52,15 @@ export default function TaskTabsCard({ assigneeId, onPreview, title, headerExtra
   const history = useCursorPagination({ urlKey: 'histCursor' });
 
   const [statuses, setStatuses] = useState<TaskStatus[]>([]);
-  const [dateFrom, setDateFrom] = useState(daysAgoIso(DEFAULT_HISTORY_DAYS));
-  const [dateTo, setDateTo] = useState('');
   const { data: baseline } = useReportingBaseline();
+  // History starts from the later of 30 days ago and the reporting start date, so it never opens on records the reports leave out. Choosing a date
+  // (including clearing it with All time) replaces that default until Reset.
+  const thirtyDaysAgo = daysAgoIso(DEFAULT_HISTORY_DAYS);
+  const defaultFrom = baseline && baseline > thirtyDaysAgo ? baseline : thirtyDaysAgo;
+  const [chosenFrom, setChosenFrom] = useState<string | null>(null);
+  const dateFrom = chosenFrom ?? defaultFrom;
+  const setDateFrom = (value: string) => setChosenFrom(value);
+  const [dateTo, setDateTo] = useState('');
 
   const selectTab = (next: Tab) => {
     const params = new URLSearchParams(searchParams);
@@ -95,7 +101,7 @@ export default function TaskTabsCard({ assigneeId, onPreview, title, headerExtra
     history.reset();
   };
   const changeDate = (set: (v: string) => void, value: string) => { set(value); history.reset(); };
-  const filtered = statuses.length > 0 || dateFrom !== daysAgoIso(DEFAULT_HISTORY_DAYS) || dateTo !== '';
+  const filtered = statuses.length > 0 || chosenFrom !== null || dateTo !== '';
 
   const leftOutItems = leftOut?.items ?? [];
   const leftOutParts = LEFT_OUT_STATUSES
@@ -223,7 +229,7 @@ export default function TaskTabsCard({ assigneeId, onPreview, title, headerExtra
             {filtered && (
               <button
                 type="button"
-                onClick={() => { setStatuses([]); setDateFrom(daysAgoIso(DEFAULT_HISTORY_DAYS)); setDateTo(''); history.reset(); }}
+                onClick={() => { setStatuses([]); setChosenFrom(null); setDateTo(''); history.reset(); }}
                 className="ml-auto hover:text-primary hover:underline"
               >
                 Reset
