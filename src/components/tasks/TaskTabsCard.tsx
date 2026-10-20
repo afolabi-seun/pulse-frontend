@@ -82,6 +82,8 @@ export default function TaskTabsCard({ assigneeId, onPreview, title, headerExtra
       statuses: historyStatuses.map((s) => s.toLowerCase()).join(','),
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
+      // Lists leave out finished work from before the reporting start date; asking for dates that reach back past it (All time, or an earlier From) includes it.
+      includeBeforeReportingStart: baseline && (!dateFrom || dateFrom < baseline) ? true : undefined,
       // Finished work reads newest completion first (any unfinished work follows it); a list with nothing finished in it has no completion dates, so by due date.
       sortBy: includesDone ? 'actualEndDate' : 'dueDate',
       sortDirection: 'desc',

@@ -24,6 +24,8 @@ export interface TaskListParams {
   /** A task's completion date when it is Done, its due date otherwise (undated unfinished work always stays in). yyyy-MM-dd. */
   dateFrom?: string;
   dateTo?: string;
+  /** Lists leave out finished tasks completed before the reporting start date; set this to include them. Never applied inside a single sprint. */
+  includeBeforeReportingStart?: boolean;
 }
 
 export interface CreateTaskRequest {
