@@ -66,6 +66,7 @@ export default function TaskArchivePage() {
   const [baseline, setBaseline] = useState('');
   const [projectId, setProjectId] = useState('');
   const [includeTouched, setIncludeTouched] = useState(false);
+  const [includeFinishedTouched, setIncludeFinishedTouched] = useState(false);
   const [reason, setReason] = useState(DEFAULT_REASON);
   const [preview, setPreview] = useState<ArchiveTasksResult | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -80,6 +81,7 @@ export default function TaskArchivePage() {
     baselineStart: baseline,
     projectIds: projectId ? [projectId] : undefined,
     includeTouched,
+    includeFinishedTouched,
     dryRun,
     reason: reason.trim(),
     // Midnight on the baseline day in the admin's own time zone (fixed offset, as the server expects).
@@ -146,6 +148,12 @@ export default function TaskArchivePage() {
             </select>
           </label>
         </div>
+
+        <label className="flex items-center gap-2 text-xs">
+          <input id="archive-include-finished-touched" type="checkbox" checked={includeFinishedTouched}
+            onChange={(e) => { setIncludeFinishedTouched(e.target.checked); setPreview(null); }} />
+          Also archive finished tasks created before the baseline, even if they were finished after it (open tasks worked on since are still kept)
+        </label>
 
         <label className="flex items-center gap-2 text-xs">
           <input id="archive-include-touched" type="checkbox" checked={includeTouched}

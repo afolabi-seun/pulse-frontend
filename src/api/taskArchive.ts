@@ -40,6 +40,8 @@ export interface ArchiveTasksRequest {
   baselineStart: string;
   projectIds?: string[];
   includeTouched: boolean;
+  /** Archive finished tasks even if touched since; open tasks touched since are still kept. */
+  includeFinishedTouched?: boolean;
   dryRun: boolean;
   reason?: string;
   /** Minutes from UTC of the local time the baseline day starts in (the admin's own browser). */
