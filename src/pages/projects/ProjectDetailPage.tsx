@@ -28,6 +28,7 @@ import { useEpicsByProject, useCreateEpic, useDeleteEpic } from '../../api/epics
 import { useSprintList } from '../../api/sprints';
 import { useCursorPagination } from '../../hooks/useCursorPagination';
 import { Pagination } from '../../components/ui/Pagination';
+import BaselineNote from '../../components/reports/BaselineNote';
 import type { BulkCreateTaskItem } from '../../api/tasks';
 import type { EpicDto, EpicStatus, TaskStatus, WikiPageSummaryDto } from '../../types/api';
 
@@ -954,6 +955,7 @@ export default function ProjectDetailPage() {
       {/* Tasks tab */}
       {tab === 'tasks' && (
         <section>
+          <BaselineNote about="tasks" className="mb-3" />
           {tasksLoading && taskViewMode === 'list' ? (
             <Skeleton className="h-32 w-full" />
           ) : taskItems.length === 0 && !showBacklogOnly && taskPage === 1 && taskViewMode === 'list' ? (

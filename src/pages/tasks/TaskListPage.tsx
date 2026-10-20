@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckSquare, Layers, Search, X, ChevronUp, ChevronDown, ChevronsUpDown, FolderOpen, UserRound, CalendarDays } from 'lucide-react';
 import { FilterBar, FILTER_SELECT } from '../../components/ui/FilterBar';
+import BaselineNote from '../../components/reports/BaselineNote';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Pagination } from '../../components/ui/Pagination';
 import { useCursorPagination } from '../../hooks/useCursorPagination';
@@ -295,6 +296,8 @@ export default function TaskListPage() {
         title="Tasks"
         actions={canCreateTask ? <Button size="sm" onClick={() => navigate('/tasks/new')}>New task</Button> : undefined}
       />
+
+      <BaselineNote about="tasks" className="-mt-2 mb-3" />
 
       <FilterBar hasFilters={hasFilters} onClear={clearFilters}>
         {/* Search */}
