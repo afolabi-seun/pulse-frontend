@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { AlertTriangle, Coffee, Play, Square } from 'lucide-react';
+import { AlertTriangle, Coffee, Info, Play, Square } from 'lucide-react';
 import { useActiveTimer, useStartTimer, useStopTimer } from '../../api/timeEntries';
 import { useTaskList, useSubtasks } from '../../api/tasks';
 import { useAuth } from '../../hooks/useAuth';
@@ -247,15 +247,6 @@ export default function TimerBar({ openTasks: allOpenTasks, myProjects, tasksLoa
             )}
           </>
         )}
-        {category === 'task' && taskSource === 'mine' && awaitingEstimate > 0 && (
-          <span className="text-xs text-muted-foreground" title="Time is only logged against estimated work">
-            {awaitingEstimate} of your tasks {awaitingEstimate === 1 ? 'has' : 'have'} no estimate yet — ask your team lead to point {awaitingEstimate === 1 ? 'it' : 'them'}.
-          </span>
-        )}
-        {taskSource === 'unclaimed' && unclaimedTasksError && (
-          <span className="text-xs text-destructive">Couldn't load unclaimed tasks for this project.</span>
-        )}
-
         <Button
           size="sm"
           onClick={handleStart}
@@ -265,6 +256,16 @@ export default function TimerBar({ openTasks: allOpenTasks, myProjects, tasksLoa
           <Play className="mr-1.5 h-3 w-3" /> Start
         </Button>
       </div>
+
+      {category === 'task' && taskSource === 'mine' && awaitingEstimate > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Time is only logged against estimated work">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          {awaitingEstimate} of your tasks {awaitingEstimate === 1 ? 'has' : 'have'} no estimate yet — ask your team lead to point {awaitingEstimate === 1 ? 'it' : 'them'}.
+        </p>
+      )}
+      {taskSource === 'unclaimed' && unclaimedTasksError && (
+        <p className="text-xs text-destructive">Couldn't load unclaimed tasks for this project.</p>
+      )}
     </div>
   );
 }
