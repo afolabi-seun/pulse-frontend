@@ -27,7 +27,7 @@ export default function WikiImportButton({ onImported, disabled }: { onImported:
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <div className="flex flex-col items-start gap-1.5">
       <input
         ref={inputRef}
         id="wiki-import-file"
@@ -41,9 +41,9 @@ export default function WikiImportButton({ onImported, disabled }: { onImported:
       <Button type="button" size="sm" variant="secondary" loading={busy} disabled={disabled} onClick={() => inputRef.current?.click()}>
         <FileUp className="mr-1.5 h-3.5 w-3.5" /> Import from Word
       </Button>
-      <span className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Word (.docx) or Markdown. Only the converted text is kept: the file is not stored, and images are not imported.
-      </span>
+      </p>
     </div>
   );
 }
