@@ -49,14 +49,17 @@ function healthBadge(health: 'Healthy' | 'AtRisk' | 'Critical') {
   return <Badge label="Healthy" variant="green" />;
 }
 
-function SectionHeader({ icon, label, badge }: { icon: React.ReactNode; label: string; badge?: React.ReactNode }) {
+function SectionHeader({ icon, label, badge, note }: { icon: React.ReactNode; label: string; badge?: React.ReactNode; note?: React.ReactNode }) {
   return (
-    <div className="mb-2 flex items-center gap-2">
-      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted">
-        {icon}
+    <div className="mb-2">
+      <div className="flex items-center gap-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+          {icon}
+        </div>
+        <h2 className="text-sm font-semibold text-foreground">{label}</h2>
+        {badge}
       </div>
-      <h2 className="text-sm font-semibold text-foreground">{label}</h2>
-      {badge}
+      {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }
@@ -201,10 +204,8 @@ export default function ReportsPage() {
             <SectionHeader
               icon={<Users className="h-3.5 w-3.5 text-primary" />}
               label="Team Utilization"
-              badge={isCustomRange && (
-                <span className="text-xs font-normal text-muted-foreground">
-                  — Hours and Completed reflect your date filter; other figures reflect the calendar week of {weekLabel(report.weekOf)}
-                </span>
+              note={isCustomRange && (
+                <>Hours and Completed reflect your date filter; other figures reflect the calendar week of {weekLabel(report.weekOf)}</>
               )}
             />
             {report.teams.length === 0 ? (
@@ -404,9 +405,7 @@ export default function ReportsPage() {
             <SectionHeader
               icon={<AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />}
               label="Check-in Compliance"
-              badge={isCustomRange && (
-                <span className="text-xs font-normal text-muted-foreground">— always the last 4 calendar weeks, not your date filter</span>
-              )}
+              note={isCustomRange && 'Always the last 4 calendar weeks, not your date filter'}
             />
             {report.checkInCompliance.length === 0 ? (
               <Card><EmptyState size="sm" icon={CheckCircle2} title="No compliance data available." /></Card>

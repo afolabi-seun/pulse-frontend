@@ -207,8 +207,10 @@ export default function EngineerDetailPage() {
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
-          <p className="text-sm font-semibold text-foreground">Delivered points — last 6 weeks</p>
-          <span className="ml-auto text-xs text-muted-foreground">Delivered: tasks marked Done · Earned: progress made, finished or not</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">Delivered points — last 6 weeks</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Delivered: tasks marked Done · Earned: progress made, finished or not</p>
+          </div>
         </div>
         <CardContent className="p-4">
           {throughputLoading ? (
